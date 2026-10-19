@@ -248,3 +248,20 @@ test("TomTom temporary CRM: five isolation and expiry requirements",async()=>{
  assert.match(radar,/source:'TomTom Places'/);
  assert.doesNotMatch(crm,/\.innerHTML\s*=/);
 });
+
+test("TomTom Details proxy: five safeguards",async()=>{
+ const source=await readFile(resolve(root,"app/api/tomtom-details/route.ts"),"utf8");
+ // 1: matches the official service version and route, using user data only for path segments
+ assert.match(source,/maps\/orbis\/places\/details\/pois/);assert.match(source,/"TomTom-Api-Version": "3"/);
+ // 2: credentials are server-only and session is authenticated
+ assert.match(source,/env\.TOMTOM_API_KEY/);assert.match(source,/requireUser\(request\)/);
+ // 3: origin and rate limiting protect the API
+ assert.match(source,/requireSameOrigin\(request\)/);assert.match(source,/checkRateLimit/);
+ // 4: reject invalid identifiers to prevent arbitrary URLs and injection
+ assert.match(source,/\^\[a-zA-Z0-9_-\]\{8,160\}\$/);
+ assert.match(source,/encodeURIComponent\(id\)/);
+ // 5: never persist provider data; handle upstream errors and disable caching
+ assert.match(source,/"Cache-Control": "no-store, private"/);
+ assert.match(source,/response\.status === 429/);
+ assert.doesNotMatch(source,/db\(\)|INSERT INTO|localStorage|sessionStorage/);
+});
