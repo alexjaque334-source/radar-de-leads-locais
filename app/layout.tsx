@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Smart Leads",
+  title: "Radar de Leads Locais",
   description: "Encontre empresas por cidade e bairro e organize leads locais.",
   icons: {
     icon: "/favicon.svg",
