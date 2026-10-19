@@ -5,12 +5,15 @@ import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
 import { connectorPreview } from "./build/connector-preview-plugin.mjs";
 
-const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  "00000000-0000-4000-8000-000000000000";
+// The D1 database ID is an identifier, not an API credential. Keeping the
+// selected production database as a default lets GitHub builds create the
+// correct binding even when no build-time override is configured.
+const CLOUDFLARE_D1_DEFAULT_DATABASE_ID =
+  "004f77e4-ed92-47e4-a4ae-1dc8e83df216";
 
 const { d1, r2 } = hostingConfig;
 const cloudflareD1Name = process.env.CLOUDFLARE_D1_DATABASE_NAME || "radar-leads-locais";
-const cloudflareD1Id = process.env.CLOUDFLARE_D1_DATABASE_ID || SITE_CREATOR_PLACEHOLDER_DATABASE_ID;
+const cloudflareD1Id = process.env.CLOUDFLARE_D1_DATABASE_ID || CLOUDFLARE_D1_DEFAULT_DATABASE_ID;
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";

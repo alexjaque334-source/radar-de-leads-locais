@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const databaseName = process.env.CLOUDFLARE_D1_DATABASE_NAME || "radar-leads-locais";
-const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID || "";
+const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID || "004f77e4-ed92-47e4-a4ae-1dc8e83df216";
 
 if (!/^[a-f0-9-]{36}$/i.test(databaseId) || databaseId === "00000000-0000-4000-8000-000000000000") {
   console.error("Configure CLOUDFLARE_D1_DATABASE_ID com o UUID do D1 criado na sua conta Cloudflare.");
