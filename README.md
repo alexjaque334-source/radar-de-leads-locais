@@ -1,4 +1,4 @@
-# Radar de Leads Locais
+# Smart Leads
 
 Aplicativo de prospecção por estado, cidade e bairro opcional. A interface reúne resultados de OpenStreetMap e TomTom, contatos públicos disponíveis, filtros e detalhes. A exportação CSV/XLSX e a interface do CRM estão temporariamente desativadas. O limite de resultados é aplicado ao total combinado.
 
@@ -26,6 +26,6 @@ As páginas `/privacy` e `/terms` são rascunhos técnicos e precisam ser revisa
 
 ## API oficial WhatsApp Business (opcional)
 
-A interface do CRM está temporariamente desativada. A rota de envio oficial da Meta permanece no código, mas não é acessível pelo fluxo atual. O lead precisa ter um número WhatsApp explícito e autorização registrada com data e origem. Um telefone público, por si só, não é consentimento. Configure no servidor, nunca no navegador: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_GRAPH_API_VERSION`, `WHATSAPP_TEMPLATE_NAME` e `WHATSAPP_TEMPLATE_LANGUAGE` (padrão `pt_BR`). São necessários os dados da conta Meta, um número comercial registrado e um modelo aprovado no WhatsApp Manager. O envio tem limite de tentativas; o Radar informa quando a Meta aceita a solicitação, mas isso não garante a entrega.
+A interface do CRM está temporariamente desativada. A rota de envio oficial da Meta permanece no código, mas não é acessível pelo fluxo atual. O lead precisa ter um número WhatsApp explícito e autorização registrada com data e origem. Um telefone público, por si só, não é consentimento. Configure no servidor, nunca no navegador: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_GRAPH_API_VERSION`, `WHATSAPP_TEMPLATE_NAME` e `WHATSAPP_TEMPLATE_LANGUAGE` (padrão `pt_BR`). São necessários os dados da conta Meta, um número comercial registrado e um modelo aprovado no WhatsApp Manager. O envio tem limite de tentativas; o Smart Leads informa quando a Meta aceita a solicitação, mas isso não garante a entrega.
 
-O WA-AKG não foi incorporado: o repositório usa Baileys e sessões de WhatsApp vinculadas por QR, incluindo disparos com atrasos aleatórios descritos como proteção anti-ban. O Radar usa a integração oficial da Meta.
+O WA-AKG não foi incorporado: o repositório usa Baileys e sessões de WhatsApp vinculadas por QR, incluindo disparos com atrasos aleatórios descritos como proteção anti-ban. O Smart Leads usa a integração oficial da Meta.
