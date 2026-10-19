@@ -18,4 +18,31 @@ packageImportMethod: auto
 verifyDepsBeforeRun: false
 optimisticRepeatInstall: false
 overrides:
-  miniflare>sharp: 0.35.4
+  '@babel/core': 7.29.6
+  baseline-browser-mapping: 2.11.0
+  brace-expansion@>=3.0.0 <5.0.7: ^5.0.7
+  brace-expansion@>=4.0.0 <5.0.10: ^5.0.10
+  brace-expansion@>=4.0.0 <5.0.11: ^5.0.11
+  brace-expansion@>=4.0.0 <5.0.12: ^5.0.12
+  brace-expansion@>=4.0.0 <5.0.8: ^5.0.8
+  brace-expansion@>=4.0.0 <5.0.9: ^5.0.9
+  browserslist: 4.28.7
+  esbuild@<=0.24.2: ^0.25.0
+  esbuild@>=0.27.3 <0.28.1: ^0.28.1
+  fast-uri: 3.1.8
+  image-size@>=0.6.3 <=2.0.2: ^2.0.3
+  image-size@>=1.2.0 <=2.0.2: ^2.0.3
+  sharp: 0.35.5
+  source-map-js: 1.2.2
+  undici@>=7.0.0 <7.28.0: ^7.28.0
+  undici@>=7.0.0 <7.29.0: ^7.29.0
+  undici@>=7.0.0 <7.29.1: ^7.29.1
+  undici@>=7.1.0 <7.29.1: ^7.29.1
+  undici@>=7.11.0 <7.29.1: ^7.29.1
+  undici@>=7.15.0 <7.29.1: ^7.29.1
+  undici@>=7.23.0 <7.28.0: ^7.28.0
+  undici@>=7.24.1 <7.29.1: ^7.29.1
+  ws@>=8.0.0 <8.20.1: ^8.20.1
+  ws@>=8.0.0 <8.21.0: ^8.21.0
+patchedDependencies:
+  braces@3.0.3: patches/braces@3.0.3.patch

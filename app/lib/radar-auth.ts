@@ -1,4 +1,6 @@
 import { env } from "cloudflare:workers";
+import { json } from "./request-safety";
+export { isRecord, json, readJsonObject, requireSameOrigin } from "./request-safety";
 
 export const runtime = "edge";
 const COOKIE = "radar_session";
@@ -7,9 +9,6 @@ const SESSION_SECONDS = 60 * 60 * 24 * 7;
 type D1 = NonNullable<typeof env.DB>;
 export type AppUser = { id: string; email: string; status: string };
 
-export function json(data: unknown, status = 200, extraHeaders: HeadersInit = {}) {
-  return Response.json(data, { status, headers: { "Cache-Control": "no-store, private", ...Object.fromEntries(new Headers(extraHeaders)) } });
-}
 export function db(): D1 | null { return env.DB ?? null; }
 export function cookieHeader(token: string, maxAge = SESSION_SECONDS) {
   return `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
@@ -19,14 +18,6 @@ export function readCookie(request: Request) {
   const raw = request.headers.get("cookie") || "";
   const pair = raw.split(";").map(x => x.trim()).find(x => x.startsWith(`${COOKIE}=`));
   return pair ? pair.slice(COOKIE.length + 1) : "";
-}
-export function requireSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  if (origin) {
-    try { if (new URL(origin).origin !== new URL(request.url).origin) return json({ error: "Origem inválida." }, 403); }
-    catch { return json({ error: "Origem inválida." }, 403); }
-  }
-  return null;
 }
 export async function sha256(value: string) {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));

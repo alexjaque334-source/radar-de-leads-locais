@@ -1,11 +1,11 @@
-import { db, hashPassword, json, cookieHeader, randomToken, sha256, verifyPassword, requireSameOrigin, checkRateLimit } from "@/app/lib/radar-auth";
+import { db, hashPassword, json, cookieHeader, randomToken, sha256, verifyPassword, requireSameOrigin, checkRateLimit, readJsonObject } from "@/app/lib/radar-auth";
 import { env } from "cloudflare:workers";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 export async function POST(request: Request) {
   const originError = requireSameOrigin(request); if (originError) return originError;
   const binding = db(); if (!binding) return json({ error: "Login indisponível: banco ainda não provisionado." }, 503);
-  let body: any; try { body = await request.json(); } catch { return json({ error: "Pedido inválido." }, 400); }
+  const body = await readJsonObject(request, 2_048); if (!body) return json({ error: "Pedido inválido ou grande demais." }, 400);
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "", password = typeof body.password === "string" ? body.password : "";
   if (!email || !password || email.length > 254 || password.length > 128) return json({ error: "Confira e-mail e senha." }, 400);
   const limited = await checkRateLimit(request, `login:${email}`, 8); if (limited) return limited;

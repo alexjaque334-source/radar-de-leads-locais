@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { checkRateLimit, db, json, requireSameOrigin, requireUser } from "@/app/lib/radar-auth";
+import { checkRateLimit, db, isRecord, json, requireSameOrigin, requireUser, readJsonObject } from "@/app/lib/radar-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -20,13 +20,15 @@ export async function POST(request: Request) {
   if (!config.SUPERADMIN_EMAIL || user.email.toLowerCase() !== config.SUPERADMIN_EMAIL.trim().toLowerCase()) {
     return json({ error: "O envio oficial está disponível somente para o administrador da conta." }, 403);
   }
-  let body: any; try { body = await request.json(); } catch { return json({ error: "Pedido inválido." }, 400); }
+  const body = await readJsonObject(request, 4_096); if (!body) return json({ error: "Pedido inválido ou grande demais." }, 400);
   const leadId = typeof body?.leadId === "string" ? body.leadId.slice(0, 120) : "";
   if (!leadId) return json({ error: "Selecione um lead válido." }, 400);
   const binding = db(); if (!binding) return json({ error: "Banco do CRM indisponível." }, 503);
   const row = await binding.prepare("SELECT payload FROM radar_leads WHERE user_id=? AND external_id=? LIMIT 1").bind(user.id,leadId).first<{payload:string}>();
   if (!row) return json({ error: "Lead não encontrado no seu CRM." }, 404);
-  let lead: any; try { lead = JSON.parse(row.payload); } catch { return json({ error: "Dados do lead inválidos." }, 500); }
+  let parsedLead: unknown; try { parsedLead = JSON.parse(row.payload); } catch { return json({ error: "Dados do lead inválidos." }, 500); }
+  if (!isRecord(parsedLead)) return json({ error: "Dados do lead inválidos." }, 500);
+  const lead = parsedLead;
   if (lead.whatsappOptIn !== true || !lead.whatsappConsentDate || !lead.whatsappConsentSource) {
     return json({ error: "Este contato não tem autorização de WhatsApp registrada." }, 422);
   }
@@ -53,9 +55,12 @@ export async function POST(request: Request) {
       }),
       signal: controller.signal,
     });
-    let result: any = {}; try { result = await response.json(); } catch {}
+    let rawResult: unknown = {}; try { rawResult = await response.json(); } catch {}
+    const result = isRecord(rawResult) ? rawResult : {};
+    const messages = Array.isArray(result.messages) ? result.messages.filter(isRecord) : [];
+    const firstMessage = messages[0];
     if (!response.ok) return json({ error: "A Meta não aceitou o envio. Confira o número, o modelo aprovado e as permissões da conta." }, response.status === 429 ? 429 : 502);
-    return json({ ok: true, status: "accepted", messageId: result?.messages?.[0]?.id || null, message: "A Meta aceitou o envio. A entrega final pode ser acompanhada na conta WhatsApp Business." });
+    return json({ ok: true, status: "accepted", messageId: typeof firstMessage?.id === "string" ? firstMessage.id : null, message: "A Meta aceitou o envio. A entrega final pode ser acompanhada na conta WhatsApp Business." });
   } catch {
     return json({ error: "Não foi possível conectar à API oficial do WhatsApp agora." }, 502);
   } finally { clearTimeout(timeout); }

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { checkRateLimit, requireSameOrigin, requireUser } from "@/app/lib/radar-auth";
+import { checkRateLimit, isRecord, requireSameOrigin, requireUser, readJsonObject } from "@/app/lib/radar-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
@@ -10,8 +10,19 @@ function json(data: unknown, status = 200) {
     headers: { "Cache-Control": "no-store, private" },
   });
 }
+function textValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (isRecord(value)) {
+    for (const key of ["value", "url", "address"]) if (typeof value[key] === "string") return value[key] as string;
+  }
+  return "";
+}
+function objectArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
+}
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await requireUser(request); if (user instanceof Response) return user;
   return json({ configured: Boolean(env.TOMTOM_API_KEY) });
 }
 
@@ -22,8 +33,8 @@ export async function POST(request: Request) {
   const key = env.TOMTOM_API_KEY;
   if (!key) return json({ error: "TomTom Places ainda não está conectado.", code: "TOMTOM_NOT_CONFIGURED" }, 503);
 
-  let input: Record<string, unknown>;
-  try { input = await request.json(); } catch { return json({ error: "Pedido de busca inválido." }, 400); }
+  const input = await readJsonObject(request, 8_192);
+  if (!input) return json({ error: "Pedido de busca inválido ou grande demais." }, 400);
   const city = typeof input.city === "string" ? input.city.trim().slice(0, 90) : "";
   const state = typeof input.state === "string" ? input.state.trim().slice(0, 40) : "";
   const neighborhood = typeof input.neighborhood === "string" ? input.neighborhood.trim().slice(0, 90) : "";
@@ -79,20 +90,23 @@ export async function POST(request: Request) {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(25000),
     });
-    const result = await response.json() as { results?: Array<Record<string, any>>; error?: { message?: string }; message?: string };
-    if (!response.ok) return json({ error: result?.error?.message || result?.message || "TomTom Places recusou a busca. Confira o produto e as permissões da chave.", code: "TOMTOM_PLACES_ERROR" }, response.status === 429 ? 429 : 502);
-    const places = (result.results || []).map((p) => {
-      const a = p.address || {};
-      const contacts = Array.isArray(p.contacts) ? p.contacts : [];
-      const phone = contacts.flatMap((x: any) => x?.phones || []).find(Boolean) || "";
-      const website = contacts.flatMap((x: any) => x?.websites || []).find(Boolean) || "";
-      const pos = p.position || {};
-      const coordinates = Array.isArray(pos.coordinates) ? pos.coordinates : [null, null];
+    const rawResult: unknown = await response.json();
+    const result = isRecord(rawResult) ? rawResult : {};
+    if (!response.ok) return json({ error: "TomTom Places não aceitou a busca. Confira a configuração e tente novamente.", code: "TOMTOM_PLACES_ERROR" }, response.status === 429 ? 429 : 502);
+    const places = objectArray(result.results).map((p) => {
+      const a = isRecord(p.address) ? p.address : {};
+      const contacts = objectArray(p.contacts);
+      const phone = contacts.flatMap(x => objectArray(x.phones).map(textValue)).find(Boolean) || "";
+      const website = contacts.flatMap(x => objectArray(x.websites).map(textValue)).find(Boolean) || "";
+      const pos = isRecord(p.position) ? p.position : {};
+      const coordinates = Array.isArray(pos.coordinates) ? pos.coordinates : [];
+      const poiTypes = objectArray(p.poiTypes);
+      const title = typeof p.title === "string" ? p.title : "";
       return {
-        id: String(p.id || `${p.title || "place"}-${pos.lat}-${pos.lon}`),
-        name: p.title || "Nome não informado pela TomTom",
-        category: p.poiTypes?.[0]?.name || category,
-        address: [a.street, a.houseNumber, a.municipalitySubdivision, a.municipality, a.countrySubdivision, a.postalCode].filter(Boolean).join(", ") || "Endereço não informado pela TomTom",
+        id: textValue(p.id) || `${title || "place"}-${textValue(pos.lat)}-${textValue(pos.lon)}`,
+        name: title || "Nome não informado pela TomTom",
+        category: textValue(poiTypes[0]?.name) || category,
+        address: [a.street, a.houseNumber, a.municipalitySubdivision, a.municipality, a.countrySubdivision, a.postalCode].map(textValue).filter(Boolean).join(", ") || "Endereço não informado pela TomTom",
         phone, site: website, lat: Number.isFinite(Number(coordinates[1])) ? Number(coordinates[1]) : null,
         lon: Number.isFinite(Number(coordinates[0])) ? Number(coordinates[0]) : null,
         distance: Number.isFinite(Number(p.distanceInMeters)) ? Number(p.distanceInMeters) : null,

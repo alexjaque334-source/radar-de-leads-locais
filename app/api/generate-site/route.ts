@@ -25,7 +25,8 @@ function cleanModelOutput(value: unknown) {
   return value.trim().replace(/^```(?:html)?\s*/i, "").replace(/\s*```$/, "").trim();
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const actor = await requireUser(request); if (actor instanceof Response) return actor;
   return json({ configured: Boolean(env.DEEPSEEK_API_KEY), model: MODEL });
 }
 
@@ -91,7 +92,6 @@ export async function POST(request: Request) {
     });
     const result = await response.json() as {
       choices?: Array<{ message?: { content?: unknown } }>;
-      error?: { message?: string };
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
     };
     if (!response.ok) {
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       const message = response.status === 401 ? "A DeepSeek recusou a chave. Confira o segredo DEEPSEEK_API_KEY."
         : response.status === 402 ? "A conta DeepSeek está sem saldo ou não tem faturamento habilitado."
           : response.status === 429 ? "A DeepSeek está limitando pedidos ou a conta atingiu um limite. Tente novamente em instantes."
-            : result.error?.message || "A DeepSeek não conseguiu concluir a geração. Tente novamente.";
+          : "A DeepSeek não conseguiu concluir a geração. Tente novamente.";
       return json({ error: message, code: "DEEPSEEK_REQUEST_FAILED" }, status);
     }
     const html = cleanModelOutput(result.choices?.[0]?.message?.content);

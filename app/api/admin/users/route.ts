@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { currentUser, db, json, requireSameOrigin } from "@/app/lib/radar-auth";
+import { currentUser, db, json, requireSameOrigin, readJsonObject } from "@/app/lib/radar-auth";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 async function authorized(request: Request) {
@@ -17,7 +17,7 @@ export async function PATCH(request: Request) {
   const originError = requireSameOrigin(request); if (originError) return originError;
   if (!(await authorized(request))) return json({ error: "Acesso restrito ao superadmin." }, 403);
   const binding = db(); if (!binding) return json({ error: "Banco indisponível." }, 503);
-  let body:any; try { body = await request.json(); } catch { return json({ error: "Pedido inválido." }, 400); }
+  const body = await readJsonObject(request, 2_048); if (!body) return json({ error: "Pedido inválido ou grande demais." }, 400);
   const id = typeof body.id === "string" ? body.id : "", status = body.status === "approved" ? "approved" : body.status === "rejected" ? "rejected" : "";
   if (!id || !status) return json({ error: "Conta ou decisão inválida." }, 400);
   const result = await binding.prepare("UPDATE radar_users SET status=?, approved_at=CASE WHEN ?='approved' THEN CURRENT_TIMESTAMP ELSE NULL END WHERE id=?").bind(status,status,id).run();

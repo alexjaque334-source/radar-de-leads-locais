@@ -1,10 +1,10 @@
-import { db, hashPassword, json, requireSameOrigin, checkRateLimit } from "@/app/lib/radar-auth";
+import { db, hashPassword, json, requireSameOrigin, checkRateLimit, readJsonObject } from "@/app/lib/radar-auth";
 export const dynamic = "force-dynamic";
 export const runtime = "edge";
 export async function POST(request: Request) {
   const originError = requireSameOrigin(request); if (originError) return originError;
   const binding = db(); if (!binding) return json({ error: "Cadastro indisponível: banco ainda não provisionado." }, 503);
-  let body: any; try { body = await request.json(); } catch { return json({ error: "Pedido inválido." }, 400); }
+  const body = await readJsonObject(request, 2_048); if (!body) return json({ error: "Pedido inválido ou grande demais." }, 400);
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Informe um e-mail válido." }, 400);
