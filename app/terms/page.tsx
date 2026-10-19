@@ -1,9 +1,9 @@
 export default function Terms() {
   return (
     <main style={{ maxWidth: 780, margin: "48px auto", padding: "0 20px", fontFamily: "system-ui", color: "#17233c", lineHeight: 1.65 }}>
-      <a href="/radar.html">← Voltar ao Radar</a>
+      <a href="/radar.html">← Voltar ao Smart Leads</a>
       <h1>Termos de Uso</h1>
-      <p>O Radar de Leads Locais auxilia pesquisa comercial usando dados públicos de estabelecimentos. A cobertura e a precisão variam por fonte; o app não garante que todos os negócios de uma região serão encontrados.</p>
+      <p>O Smart Leads auxilia pesquisa comercial usando dados públicos de estabelecimentos. A cobertura e a precisão variam por fonte; o app não garante que todos os negócios de uma região serão encontrados.</p>
       <h2>Uso dos dados</h2>
       <p>O usuário deve respeitar as condições dos provedores e a legislação aplicável. Dados do OpenStreetMap são atribuídos à comunidade OpenStreetMap e estão sujeitos à ODbL. Dados da TomTom Places são exibidos temporariamente e não são exportados por este aplicativo.</p>
       <h2>Conta e recursos</h2>
