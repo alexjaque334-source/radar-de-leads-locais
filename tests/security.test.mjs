@@ -146,3 +146,31 @@ test("opportunity filters are independent from third-party export restrictions",
   assert.match(source, /exportable:false,food:FOOD\.has\(cat\)/);
   assert.match(source, /const capped=capResults\(\[\],S\.tomtom/);
 });
+
+test("provider merge deduplicates nearby same-name places and preserves distinct locations", async () => {
+  const source = await readFile(resolve(root, "public/radar.html"), "utf8");
+  const match = source.match(/function capResults\(osm,tomtom,limit\)\{[^\n]*?return chosen\}/);
+  assert.ok(match, "capResults implementation should exist");
+  const { runInNewContext } = await import("node:vm");
+  const dist = (a,b,c,d) => {
+    const R=6371000,p=Math.PI/180,dl=(c-a)*p,dn=(d-b)*p;
+    const z=Math.sin(dl/2)**2+Math.cos(a*p)*Math.sin(dn/2)**2;
+    return 2*R*Math.atan2(Math.sqrt(z),Math.sqrt(1-z));
+  };
+  const capResults = runInNewContext(`(${match[0]})`, {dist});
+  const osm = [{name:"Café São José",lat:-25.42,lon:-49.27},{name:"Café São José",lat:-25.45,lon:-49.30}];
+  const tomtom = [{name:"Cafe Sao Jose",lat:-25.4202,lon:-49.2702},{name:"Mercado Central",lat:-25.43,lon:-49.28}];
+  const result = capResults(osm,tomtom,10);
+  assert.equal(result.osm.length+result.tomtom.length,3,"same-name nearby lead should be merged");
+  const capped = capResults(osm,tomtom,2);
+  assert.equal(capped.osm.length+capped.tomtom.length,2,"limit must apply to combined sources");
+  assert.equal(capResults([],[],10).osm.length+capResults([],[],10).tomtom.length,0);
+});
+
+test("TomTom results are not eligible for persisted CRM export", async () => {
+  const radar = await readFile(resolve(root,"public/radar.html"),"utf8");
+  const crm = await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");
+  assert.match(radar,/exportable:false,food:FOOD\.has\(cat\)/);
+  assert.match(crm,/lead\.source !== "OpenStreetMap"/);
+  assert.match(crm,/CRM só armazena registros públicos verificáveis do OpenStreetMap/);
+});
