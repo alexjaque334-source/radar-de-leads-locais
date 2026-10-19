@@ -227,3 +227,24 @@ test("CRM: five release-gate checks for manual leads and safe UI", async () => {
  assert.match(radar,/href="\/crm\.html"/);
  assert.match(html,/Dados temporários da TomTom não são importados/);
 });
+
+test("TomTom temporary CRM: five isolation and expiry requirements",async()=>{
+ const crm=await readFile(resolve(root,"public/crm.html"),"utf8");
+ const radar=await readFile(resolve(root,"public/radar.html"),"utf8");
+ const api=await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");
+ // 1 - temporary search results read only from sessionStorage
+ assert.match(crm,/sessionStorage\.getItem\(key\)/);
+ assert.match(crm,/radar-leads-session-v1:/);
+ // 2 - bind to authenticated user and avoid cross-account reads
+ assert.match(crm,/snapshot\.email===email\.trim\(\)\.toLowerCase\(\)/);
+ // 3 - enforce expiry, and drop expired snapshot
+ assert.match(crm,/Date\.now\(\)-snapshot\.savedAt<8\*60\*60\*1000/);
+ assert.match(crm,/sessionStorage\.removeItem\(key\)/);
+ // 4 - do not accidentally persist or export third-party records
+ assert.match(api,/lead\.source !== "OpenStreetMap"/);
+ assert.match(crm,/não salva no D1, não exportável/);
+ // 5 - render user supplied fields as text, maintain source tags
+ assert.match(crm,/card\.append\(node\('h3',place\.name/);
+ assert.match(radar,/source:'TomTom Places'/);
+ assert.doesNotMatch(crm,/\.innerHTML\s*=/);
+});
