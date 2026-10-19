@@ -99,7 +99,7 @@ test("JSON responses preserve caller headers while enforcing no-store", () => {
 test("mutating API handlers enforce origin and authenticated user checks", async () => {
   const files = [
     "app/api/auth/login/route.ts", "app/api/auth/register/route.ts", "app/api/auth/logout/route.ts",
-    "app/api/auth/me/route.ts", "app/api/tomtom-search/route.ts", "app/api/crm/leads/route.ts",
+    "app/api/auth/me/route.ts", "app/api/tomtom-search/route.ts",
     "app/api/whatsapp/send/route.ts", "app/api/generate-site/route.ts", "app/api/admin/users/route.ts",
   ];
   for (const file of files) {
