@@ -284,3 +284,5 @@ test("TomTom Geocoding fallback: five validation checks",async()=>{
  assert.match(radar,/target=await locateRegion\(neighborhood/);
  assert.match(radar,/osm_type:'tomtom'/);
 });
+
+test("CRM compliance gate: five checks",async()=>{const crm=await readFile(resolve(root,"public/crm.html"),"utf8");const radar=await readFile(resolve(root,"public/radar.html"),"utf8");const studio=await readFile(resolve(root,"public/studio.html"),"utf8");const api=await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");assert.match(crm,/CRM desativado/);assert.match(crm,/location\.replace\("\/radar\.html"\)/);assert.doesNotMatch(radar,/href="\/crm\.html"/);assert.doesNotMatch(studio,/href="\/crm\.html"/);assert.match(api,/lead\.source !== "OpenStreetMap"/);});
