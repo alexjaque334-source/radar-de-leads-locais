@@ -74,6 +74,7 @@ export async function POST(request: Request) {
   if (poiTypes[categoryKey]) (body.filters as Record<string, unknown>).poiTypes = poiTypes[categoryKey];
   if (validBounds) (body.filters as Record<string, unknown>).geometry = { type: "rectangle", coordinates: [west, south, east, north] };
   const attrs = "results(id,type,title,subtitles,distanceInMeters,position,address,contacts,poiTypes)";
+  const trackingId = crypto.randomUUID();
 
   try {
     const response = await fetch("https://api.tomtom.com/maps/orbis/places/discover", {
@@ -83,16 +84,33 @@ export async function POST(request: Request) {
         "TomTom-Api-Key": key,
         "TomTom-Api-Version": "3",
         "Session-Id": crypto.randomUUID(),
-        "Tracking-Id": crypto.randomUUID(),
+        "Tracking-Id": trackingId,
         "Accept-Language": "pt-BR",
         "Attributes": attrs,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(25000),
     });
-    const rawResult: unknown = await response.json();
+    const responseText = await response.text();
+    let rawResult: unknown = {};
+    try { rawResult = responseText ? JSON.parse(responseText) : {}; } catch { /* A API pode retornar texto sem JSON. */ }
     const result = isRecord(rawResult) ? rawResult : {};
-    if (!response.ok) return json({ error: "TomTom Places não aceitou a busca. Confira a configuração e tente novamente.", code: "TOMTOM_PLACES_ERROR" }, response.status === 429 ? 429 : 502);
+    if (!response.ok) {
+      const upstreamError = isRecord(result.error) ? result.error : {};
+      const upstreamCode = typeof upstreamError.code === "string" ? upstreamError.code.slice(0, 80) : "";
+      // Log only provider status/code and our request ID; never the API key or search terms.
+      console.error("TomTom Places rejected request", { status: response.status, code: upstreamCode, trackingId });
+      if (response.status === 401 || response.status === 403) {
+        return json({ error: "A TomTom recusou a chave ou o acesso ao Places Search. Confira se TOMTOM_API_KEY é uma chave ativa com o produto Places Search habilitado.", code: "TOMTOM_ACCESS_DENIED", trackingId }, 502);
+      }
+      if (response.status === 400) {
+        return json({ error: "A TomTom rejeitou os parâmetros desta busca. Identificador para diagnóstico: " + trackingId + ".", code: "TOMTOM_INVALID_REQUEST", trackingId }, 502);
+      }
+      if (response.status === 429) {
+        return json({ error: "A TomTom limitou temporariamente as consultas. Aguarde um pouco e tente novamente.", code: "TOMTOM_RATE_LIMITED", trackingId }, 429);
+      }
+      return json({ error: "A TomTom Places respondeu com erro (HTTP " + response.status + "). Identificador: " + trackingId + ".", code: "TOMTOM_PLACES_ERROR", trackingId }, 502);
+    }
     const places = objectArray(result.results).map((p) => {
       const a = isRecord(p.address) ? p.address : {};
       const contacts = objectArray(p.contacts);
