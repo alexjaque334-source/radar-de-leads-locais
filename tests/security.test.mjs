@@ -167,14 +167,6 @@ test("provider merge deduplicates nearby same-name places and preserves distinct
   assert.equal(capResults([],[],10).osm.length+capResults([],[],10).tomtom.length,0);
 });
 
-test("TomTom results are not eligible for persisted CRM export", async () => {
-  const radar = await readFile(resolve(root,"public/radar.html"),"utf8");
-  const crm = await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");
-  assert.match(radar,/exportable:false,food:FOOD\.has\(cat\)/);
-  assert.match(crm,/lead\.source !== "OpenStreetMap"/);
-  assert.match(crm,/CRM só armazena registros públicos verificáveis do OpenStreetMap/);
-});
-
 test("deduplication: five scenarios for names phones and distance", async () => {
   const source=await readFile(resolve(root,"public/radar.html"),"utf8");
   const match=source.match(/function capResults\(osm,tomtom,limit\)\{[^\n]*?return chosen\}/);
@@ -246,7 +238,7 @@ test("TomTom Geocoding fallback: five validation checks",async()=>{
  assert.match(radar,/osm_type:'tomtom'/);
 });
 
-test("CRM compliance gate: five checks",async()=>{const crm=await readFile(resolve(root,"public/crm.html"),"utf8");const radar=await readFile(resolve(root,"public/radar.html"),"utf8");const studio=await readFile(resolve(root,"public/studio.html"),"utf8");const api=await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");assert.match(crm,/CRM desativado/);assert.match(crm,/location\.replace\("\/radar\.html"\)/);assert.doesNotMatch(radar,/href="\/crm\.html"/);assert.doesNotMatch(studio,/href="\/crm\.html"/);assert.match(api,/lead\.source !== "OpenStreetMap"/);});
+test("CRM compliance gate: five checks",async()=>{const crm=await readFile(resolve(root,"public/crm.html"),"utf8");const radar=await readFile(resolve(root,"public/radar.html"),"utf8");const studio=await readFile(resolve(root,"public/studio.html"),"utf8");const api=await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");assert.match(crm,/CRM desativado/);assert.match(crm,/location\.replace\("\/radar\.html"\)/);assert.doesNotMatch(radar,/href="\/crm\.html"/);assert.doesNotMatch(studio,/href="\/crm\.html"/);assert.match(api,/status: 410/);});
 
 test("motion cover templates: five privacy and usability safeguards",async()=>{
  const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");
@@ -274,4 +266,13 @@ assert.match(api,/if \(confirmEmail !== target\.email\) return json/);
 assert.match(api,/if \(id === admin\.id\)/);
 assert.match(api,/configuredAdminEmail\(\)/);
 assert.match(api,/requireSameOrigin\(request\)/);
+});
+
+test("Final release gate: CRM API is disabled in all five compliance checks",async()=>{
+ const route=await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");
+ const ui=await readFile(resolve(root,"public/crm.html"),"utf8");
+ for(const method of ["GET","POST","PATCH","DELETE"])assert.match(route,new RegExp("export async function "+method+"\\(\\) \\{ return unavailable\\(\\); \\}"));
+ assert.match(route,/status: 410/);
+ assert.doesNotMatch(route,/INSERT INTO|UPDATE radar_leads|DELETE FROM radar_leads/);
+ assert.match(ui,/CRM desativado/);
 });
