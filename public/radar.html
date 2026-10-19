@@ -86,6 +86,8 @@
   function saveHistory(){try{const item={city:$('city').value.trim(),state:$('state').value,neighborhood:$('neighborhood').value.trim(),category:currentCategory()};const a=JSON.parse(localStorage.getItem('radar-city-history')||'[]');localStorage.setItem('radar-city-history',JSON.stringify([item,...a.filter(x=>JSON.stringify(x)!==JSON.stringify(item))].slice(0,5)));history()}catch{}}
   function currentCategory(){return $('category').value==='custom'?$('custom').value.trim():CAT[$('category').value].name}
   let lastGeocodeAt=0;async function geocode(q,signal){const wait=Math.max(0,1100-(Date.now()-lastGeocodeAt));if(wait)await new Promise((resolve,reject)=>{const timer=setTimeout(resolve,wait);signal?.addEventListener('abort',()=>{clearTimeout(timer);reject(new DOMException('Busca cancelada','AbortError'))},{once:true})});lastGeocodeAt=Date.now();const p=new URLSearchParams({q:q+', Brasil',format:'jsonv2',addressdetails:'1',limit:'5'});const r=await fetch('https://nominatim.openstreetmap.org/search?'+p,{signal,headers:{'Accept-Language':'pt-BR'}});if(!r.ok)throw Error('O serviço de localização está ocupado. Tente novamente.');const a=await r.json();if(!a.length)throw Error('Não encontrei essa cidade ou bairro nos dados cartográficos. Confira os nomes.');return a}
+  async function tomtomGeocode(query,signal){const r=await fetch('/api/tomtom-geocode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query+', Brasil'}),signal});if(!r.ok)throw Error('TomTom Geocoding indisponível');const data=await r.json();const first=data.places?.[0];if(!first||!Number.isFinite(first.lat)||!Number.isFinite(first.lon))throw Error('TomTom não localizou essa região');return {lat:first.lat,lon:first.lon,boundingbox:[],osm_type:'tomtom',display_name:first.title};}
+  async function locateRegion(query,signal){try{return pickBoundary(await geocode(query,signal))}catch(error){if(error?.name==='AbortError')throw error;return await tomtomGeocode(query,signal)}}
   function pickBoundary(rows){return rows.find(x=>x.osm_type==='relation'||x.class==='boundary')||rows[0]}
   function areaId(r){const id=Number(r.osm_id);if(!Number.isFinite(id))return null;if(r.osm_type==='relation')return 3600000000+id;if(r.osm_type==='way'&&r.class==='boundary')return 2400000000+id;return null}
   function boundsOf(r){const b=(r.boundingbox||[]).map(Number);if(b.length!==4||b.some(x=>!Number.isFinite(x)))return null;return{south:b[0],north:b[1],west:b[2],east:b[3]}}
@@ -162,12 +164,10 @@
       if(!S.tomtomReady)throw Error('TomTom Places não está configurada neste Worker. Adicione TOMTOM_API_KEY em Cloudflare > Workers & Pages > radar-de-leads-locais > Settings > Variables and Secrets para habilitar buscas.');
       const stateName=UFS[uf]||uf;
       $('progressText').textContent='Localizando '+(neighborhood?neighborhood+', ':'')+city+' e consultando TomTom Places…';
-      const cityRows=await geocode(city+', '+stateName,ctrl.signal);
-      const cityObj=pickBoundary(cityRows);
+      const cityObj=await locateRegion(city+', '+stateName,ctrl.signal);
       let target=cityObj;
       if(neighborhood){
-        const nhRows=await geocode(neighborhood+', '+city+', '+stateName,ctrl.signal);
-        target=pickBoundary(nhRows)
+        target=await locateRegion(neighborhood+', '+city+', '+stateName,ctrl.signal)
       }
       S.scope=target;S.center={lat:+target.lat,lon:+target.lon};
       const category=currentCategory();
