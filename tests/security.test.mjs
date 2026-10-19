@@ -265,3 +265,22 @@ test("TomTom Details proxy: five safeguards",async()=>{
  assert.match(source,/response\.status === 429/);
  assert.doesNotMatch(source,/db\(\)|INSERT INTO|localStorage|sessionStorage/);
 });
+
+test("TomTom Geocoding fallback: five validation checks",async()=>{
+ const api=await readFile(resolve(root,"app/api/tomtom-geocode/route.ts"),"utf8");
+ const radar=await readFile(resolve(root,"public/radar.html"),"utf8");
+ // 1: documented Geocoding v2 parameters
+ assert.match(api,/maps\/orbis\/places\/geocode/);assert.match(api,/"TomTom-Api-Version":"2"/);
+ // 2: authenticated secret-backed API and fixed provider host
+ assert.match(api,/requireUser\(request\)/);assert.match(api,/env\.TOMTOM_API_KEY/);
+ // 3: rate limit and Brazilian coordinate bounds
+ assert.match(api,/checkRateLimit/);assert.match(api,/lat < -35\|\|lat > 6/);
+ // 4: Nominatim remains primary, fallback handles errors, abort remains abort
+ assert.match(radar,/return pickBoundary\(await geocode\(query,signal\)\)/);
+ assert.match(radar,/if\(error\?\.name==='AbortError'\)throw error/);
+ assert.match(radar,/return await tomtomGeocode\(query,signal\)/);
+ // 5: fallback is used for both city and neighborhood and returns shape compatible with center
+ assert.match(radar,/const cityObj=await locateRegion\(city/);
+ assert.match(radar,/target=await locateRegion\(neighborhood/);
+ assert.match(radar,/osm_type:'tomtom'/);
+});
