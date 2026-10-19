@@ -1,0 +1,12 @@
+SUPERADMIN_EMAIL=apacessoria25@gmail.com
+SUPERADMIN_PASSWORD=replace_with_a_long_unique_admin_password
+DEEPSEEK_API_KEY=replace_with_your_deepseek_api_key
+# Meta WhatsApp Business Cloud API (server-side secrets only)
+# Requires a Meta business portfolio, a WhatsApp Business account/registered number,
+# a long-lived access token, and a pre-approved outbound template.
+WHATSAPP_ACCESS_TOKEN=replace_with_server_side_meta_token
+WHATSAPP_PHONE_NUMBER_ID=replace_with_meta_phone_number_id
+WHATSAPP_GRAPH_API_VERSION=vXX.X
+WHATSAPP_TEMPLATE_NAME=replace_with_approved_template_name
+WHATSAPP_TEMPLATE_LANGUAGE=pt_BR
+TOMTOM_API_KEY=replace_with_your_tomtom_api_key
