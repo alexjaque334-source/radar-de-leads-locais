@@ -137,3 +137,12 @@ test("radar clearly counts businesses without a website URL, not businesses with
   assert.match(source, /mNoSite'\)\.textContent=a\.filter\(x=>!safeUrl\(x\.site\)\)\.length/);
   assert.match(source, /Ausência de URL não comprova ausência de site/);
 });
+
+
+test("opportunity filters are independent from third-party export restrictions", async () => {
+  const source = await readFile(resolve(root, "public/radar.html"), "utf8");
+  assert.match(source, /if\(site==='nosite'&&hasSite\)return false/);
+  assert.match(source, /if\(S\.quick&&\(!x\.food\|\|hasSite\|\|x\.menu\)\)return false/);
+  assert.match(source, /exportable:false,food:FOOD\.has\(cat\)/);
+  assert.match(source, /const capped=capResults\(\[\],S\.tomtom/);
+});
