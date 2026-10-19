@@ -209,3 +209,21 @@ test("opportunity score: five deterministic scenarios", async () => {
   assert.equal(score({site:"",phone:"",food:true}),75,"food business without website");
   assert.equal(score({site:"",phone:"41999999999",food:true}),100,"score capped at 100");
 });
+
+test("CRM: five release-gate checks for manual leads and safe UI", async () => {
+ const api=await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");
+ const html=await readFile(resolve(root,"public/crm.html"),"utf8");
+ const radar=await readFile(resolve(root,"public/radar.html"),"utf8");
+ // 1 - authentication, same-origin write checks.
+ assert.match(api,/requireSameOrigin\(request\)/); assert.match(api,/requireUser\(request\)/);
+ // 2 - manual origin is separate and data from TomTom remains rejected.
+ assert.match(api,/lead\.source === "Manual"/); assert.match(api,/lead\.source !== "OpenStreetMap"/);
+ assert.match(api,/source: manual \? "Manual" : "OpenStreetMap"/);
+ // 3 - create, read, edit and delete UI is wired to official CRM API.
+ for(const method of ["POST","GET","PATCH","DELETE"])assert.ok(html.includes("api('"+method+"'"),method+" missing");
+ // 4 - render user-provided data only through textContent, not innerHTML.
+ assert.match(html,/e\.textContent=String\(text\?\?''\)/);assert.doesNotMatch(html,/\.innerHTML\s*=/);
+ // 5 - CRM navigation and safe TomTom display restrictions stay intact.
+ assert.match(radar,/href="\/crm\.html"/);
+ assert.match(html,/Dados temporários da TomTom não são importados/);
+});
