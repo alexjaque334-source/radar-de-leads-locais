@@ -28,14 +28,17 @@ export async function POST(request: Request) {
   for (const raw of body.leads) {
     const item = isRecord(raw) ? raw : {};
     const lead = cleanLead(item), osmId = typeof item.id === "string" ? item.id : "", sourceUrl = typeof lead.sourceUrl === "string" ? lead.sourceUrl : "";
-    if (!lead.name || !/^(node|way|relation)\/\d+$/.test(osmId) || lead.source !== "OpenStreetMap" || !/^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(sourceUrl)) return json({ error: "O CRM só armazena registros públicos verificáveis do OpenStreetMap. Resultados temporários de outras fontes não são elegíveis." }, 422);
+    if (!lead.name || (lead.source !== "Manual" && (!/^(node|way|relation)\/\d+$/.test(osmId) || lead.source !== "OpenStreetMap" || !/^https:\/\/www\.openstreetmap\.org\/(node|way|relation)\/\d+$/.test(sourceUrl)))) return json({ error: "O CRM só armazena registros públicos verificáveis do OpenStreetMap. Resultados temporários de outras fontes não são elegíveis." }, 422);
+    const manual = lead.source === "Manual";
+    const externalId = manual ? `manual/${crypto.randomUUID()}` : osmId;
+    if (manual) { lead.sourceUrl = ""; lead.googleUrl = ""; }
     const stage = typeof item.stage === "string" && ["novo","contato","conversa","reuniao","proposta","negociacao","ganho","perdido"].includes(item.stage) ? item.stage : "novo";
     const notes = typeof item.notes === "string" ? item.notes.slice(0, 5000) : "";
     const followUp = typeof item.followUp === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.followUp) ? item.followUp : "";
-    prepared.push({ id: crypto.randomUUID(), externalId: osmId, payload: JSON.stringify({ ...lead, id: osmId, source: "OpenStreetMap" }), stage, notes, followUp });
+    prepared.push({ id: crypto.randomUUID(), externalId, payload: JSON.stringify({ ...lead, id: externalId, source: manual ? "Manual" : "OpenStreetMap" }), stage, notes, followUp });
   }
   const now = new Date().toISOString();
-  const statements = prepared.map(item => binding.prepare("INSERT INTO radar_leads(id,user_id,source,external_id,payload,stage,notes,follow_up,created_at,updated_at) VALUES(?,?,'OpenStreetMap',?,?,?,?,?,?,?) ON CONFLICT(user_id,external_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at").bind(item.id,user.id,item.externalId,item.payload,item.stage,item.notes,item.followUp,now,now));
+  const statements = prepared.map(item => binding.prepare("INSERT INTO radar_leads(id,user_id,source,external_id,payload,stage,notes,follow_up,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,external_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at").bind(item.id,user.id,item.externalId.startsWith("manual/")?"Manual":"OpenStreetMap",item.externalId,item.payload,item.stage,item.notes,item.followUp,now,now));
   await binding.batch(statements);
   return json({ ok: true, count: prepared.length, retained: true }, 201);
 }
