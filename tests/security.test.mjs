@@ -268,7 +268,9 @@ test("superadmin account deletion: five safety checks",async()=>{
 const html=await readFile(resolve(root,"public/admin.html"),"utf8");
 const api=await readFile(resolve(root,"app/api/admin/users/route.ts"),"utf8");
 assert.match(html,/prompt\('Exclusão irreversível: digite o e-mail completo/);
-assert.match(html,/!==user\.email\)return/);
+assert.match(html,/if\(confirmEmail!==user\.email\)return/);
+assert.match(html,/body:JSON\.stringify\(\{confirmEmail\}\)/);
+assert.match(api,/if \(confirmEmail !== target\.email\) return json/);
 assert.match(api,/if \(id === admin\.id\)/);
 assert.match(api,/configuredAdminEmail\(\)/);
 assert.match(api,/requireSameOrigin\(request\)/);
