@@ -263,3 +263,13 @@ test("motion cover templates: five privacy and usability safeguards",async()=>{
  // 5. Motion accessibility and discoverability.
  assert.match(page,/prefers-reduced-motion:reduce/);assert.match(studio,/href="\/video-studio\.html"/);
 });
+
+test("superadmin account deletion: five safety checks",async()=>{
+const html=await readFile(resolve(root,"public/admin.html"),"utf8");
+const api=await readFile(resolve(root,"app/api/admin/users/route.ts"),"utf8");
+assert.match(html,/prompt\('Exclusão irreversível: digite o e-mail completo/);
+assert.match(html,/!==user\.email\)return/);
+assert.match(api,/if \(id === admin\.id\)/);
+assert.match(api,/configuredAdminEmail\(\)/);
+assert.match(api,/requireSameOrigin\(request\)/);
+});
