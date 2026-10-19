@@ -174,3 +174,24 @@ test("TomTom results are not eligible for persisted CRM export", async () => {
   assert.match(crm,/lead\.source !== "OpenStreetMap"/);
   assert.match(crm,/CRM só armazena registros públicos verificáveis do OpenStreetMap/);
 });
+
+test("deduplication: five scenarios for names phones and distance", async () => {
+  const source=await readFile(resolve(root,"public/radar.html"),"utf8");
+  const match=source.match(/function capResults\(osm,tomtom,limit\)\{[^\n]*?return chosen\}/);
+  assert.ok(match);
+  const {runInNewContext}=await import("node:vm");
+  const dist=(a,b,c,d)=>{const R=6371000,p=Math.PI/180,dl=(c-a)*p,dn=(d-b)*p,z=Math.sin(dl/2)**2+Math.cos(a*p)*Math.sin(dn/2)**2;return 2*R*Math.atan2(Math.sqrt(z),Math.sqrt(1-z))};
+  const merge=runInNewContext(`(${match[0]})`,{dist});
+  const count=r=>r.osm.length+r.tomtom.length;
+  // 1. Accented names and nearby locations match.
+  assert.equal(count(merge([{name:"Café João",lat:-25.42,lon:-49.27}],[{name:"Cafe Joao",lat:-25.4201,lon:-49.2701}],10)),1);
+  // 2. Equivalent BR phones match despite different locations and +55 prefix.
+  assert.equal(count(merge([{name:"Mercado Sol",phone:"+55 (41) 99999-1234"}],[{name:"Mercado Sol",phone:"41999991234"}],10)),1);
+  // 3. Similar names with different phones and distant locations stay distinct.
+  assert.equal(count(merge([{name:"Mercado Sol",phone:"41999991234",lat:-25.42,lon:-49.27}],[{name:"Mercado Sol",phone:"41999991235",lat:-25.45,lon:-49.30}],10)),2);
+  // 4. Identical names without phone or location remain distinct rather than false merged.
+  assert.equal(count(merge([{name:"Loja Nova"}],[{name:"Loja Nova"}],10)),2);
+  // 5. Limit applies across both providers and zero limit returns none.
+  assert.equal(count(merge([{name:"A"},{name:"B"}],[{name:"C"},{name:"D"}],3)),3);
+  assert.equal(count(merge([{name:"A"}],[{name:"B"}],0)),0);
+});
