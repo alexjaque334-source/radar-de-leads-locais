@@ -129,3 +129,11 @@ test("checked-in frontend files contain no recognizable provider key assignment"
     assert.doesNotMatch(source, pattern, `${file} contains a possible credential`);
   }
 });
+
+
+test("radar clearly counts businesses without a website URL, not businesses with a website", async () => {
+  const source = await readFile(resolve(root, "public/radar.html"), "utf8");
+  assert.match(source, /Sem site identificado/);
+  assert.match(source, /mNoSite'\)\.textContent=a\.filter\(x=>!safeUrl\(x\.site\)\)\.length/);
+  assert.match(source, /Ausência de URL não comprova ausência de site/);
+});
