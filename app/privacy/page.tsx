@@ -1,9 +1,9 @@
 export default function Privacy() {
   return (
     <main style={{ maxWidth: 780, margin: "48px auto", padding: "0 20px", fontFamily: "system-ui", color: "#17233c", lineHeight: 1.65 }}>
-      <a href="/radar.html">← Voltar ao Radar</a>
+      <a href="/radar.html">← Voltar ao Smart Leads</a>
       <h1>Política de Privacidade</h1>
-      <p>O responsável pelo Radar de Leads Locais atende solicitações relacionadas a dados pessoais pelo WhatsApp/telefone +55 (41) 99753-3584 e pelo e-mail apacessoria25@gmail.com. O serviço trata os dados descritos abaixo para autenticar usuários, realizar buscas comerciais solicitadas e gerar páginas quando o usuário aciona a ferramenta.</p>
+      <p>O responsável pelo Smart Leads atende solicitações relacionadas a dados pessoais pelo WhatsApp/telefone +55 (41) 99753-3584 e pelo e-mail apacessoria25@gmail.com. O serviço trata os dados descritos abaixo para autenticar usuários, realizar buscas comerciais solicitadas e gerar páginas quando o usuário aciona a ferramenta.</p>
       <h2>Dados consultados</h2>
       <p>O usuário informa estado, cidade, bairro opcional e segmento. Esses dados são enviados aos serviços de geocodificação e busca escolhidos para localizar estabelecimentos comerciais. O aplicativo não solicita nem armazena contas ou senhas de empresas.</p>
       <h2>OpenStreetMap</h2>
