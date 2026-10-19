@@ -21,6 +21,8 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 
 const localBindingConfig = {
   name: "radar-leads-locais",
+  // Preserve dashboard-managed variables during Wrangler deployments.
+  keep_vars: true,
   vars: { SUPERADMIN_EMAIL: process.env.SUPERADMIN_EMAIL || "apacessoria25@gmail.com" },
   main: "./build/sites-worker.ts",
   compatibility_flags: ["nodejs_compat"],
