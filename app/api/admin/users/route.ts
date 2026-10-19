@@ -40,11 +40,14 @@ export async function DELETE(request: Request) {
   if (!admin) return json({ error: "Acesso restrito ao superadmin." }, 403);
   const binding = db(); if (!binding) return json({ error: "Banco indisponível." }, 503);
   const id = new URL(request.url).searchParams.get("id") || "";
+  const confirmation = await readJsonObject(request, 1024);
+  const confirmEmail = typeof confirmation?.confirmEmail === "string" ? confirmation.confirmEmail : "";
   if (!id) return json({ error: "Conta inválida." }, 400);
   if (id === admin.id) return json({ error: "A conta superadmin é protegida contra bloqueio e exclusão." }, 403);
   const target = await binding.prepare("SELECT email FROM radar_users WHERE id=? LIMIT 1").bind(id).first<{ email: string }>();
   if (!target) return json({ error: "Conta não encontrada." }, 404);
   if (target.email.trim().toLowerCase() === configuredAdminEmail()) return json({ error: "A conta superadmin é protegida contra bloqueio e exclusão." }, 403);
+  if (confirmEmail !== target.email) return json({ error: "Confirmação de e-mail inválida. A conta não foi excluída." }, 400);
   await binding.batch([
     binding.prepare("DELETE FROM radar_leads WHERE user_id=?").bind(id),
     binding.prepare("DELETE FROM radar_sessions WHERE user_id=?").bind(id),
