@@ -195,3 +195,17 @@ test("deduplication: five scenarios for names phones and distance", async () => 
   assert.equal(count(merge([{name:"A"},{name:"B"}],[{name:"C"},{name:"D"}],3)),3);
   assert.equal(count(merge([{name:"A"}],[{name:"B"}],0)),0);
 });
+
+test("opportunity score: five deterministic scenarios", async () => {
+  const source=await readFile(resolve(root,"public/radar.html"),"utf8");
+  const scoreSource=source.match(/function score\(x\)\{[^\n]*?\}/)?.[0];
+  assert.ok(scoreSource);
+  const {runInNewContext}=await import("node:vm");
+  const safeUrl=v=>{try{const url=new URL(v);return ['https:','http:'].includes(url.protocol)?url.href:''}catch{return ''}};
+  const score=runInNewContext(`(${scoreSource})`,{safeUrl});
+  assert.equal(score({site:"",phone:"",food:false}),65,"missing website only");
+  assert.equal(score({site:"",phone:"41999999999",food:false}),90,"missing website and contact");
+  assert.equal(score({site:"https://business.example",phone:"",food:false}),0,"website present");
+  assert.equal(score({site:"",phone:"",food:true}),75,"food business without website");
+  assert.equal(score({site:"",phone:"41999999999",food:true}),100,"score capped at 100");
+});
