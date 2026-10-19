@@ -247,3 +247,19 @@ test("TomTom Geocoding fallback: five validation checks",async()=>{
 });
 
 test("CRM compliance gate: five checks",async()=>{const crm=await readFile(resolve(root,"public/crm.html"),"utf8");const radar=await readFile(resolve(root,"public/radar.html"),"utf8");const studio=await readFile(resolve(root,"public/studio.html"),"utf8");const api=await readFile(resolve(root,"app/api/crm/leads/route.ts"),"utf8");assert.match(crm,/CRM desativado/);assert.match(crm,/location\.replace\("\/radar\.html"\)/);assert.doesNotMatch(radar,/href="\/crm\.html"/);assert.doesNotMatch(studio,/href="\/crm\.html"/);assert.match(api,/lead\.source !== "OpenStreetMap"/);});
+
+test("motion cover templates: five privacy and usability safeguards",async()=>{
+ const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ const studio=await readFile(resolve(root,"public/studio.html"),"utf8");
+ // 1. Auth redirect prevents unauthenticated access.
+ assert.match(page,/fetch\('\/api\/auth\/me'/);assert.match(page,/login\.html\?next=%2Fvideo-studio\.html/);
+ // 2. Four distinct templates in responsive 9:16 layout.
+ for(const name of ['cinematic','slide','glow','minimal'])assert.match(page,new RegExp('value="'+name+'"'));
+ assert.match(page,/aspect-ratio:9\/16/);
+ // 3. Uploaded photo local, MIME and size guarded.
+ assert.match(page,/URL\.createObjectURL\(file\)/);assert.match(page,/file\.size>5\*1024\*1024/);
+ // 4. Text injected with textContent only; no arbitrary HTML.
+ assert.match(page,/\$\('outTitle'\)\.textContent/);assert.doesNotMatch(page,/\.innerHTML\s*=/);
+ // 5. Motion accessibility and discoverability.
+ assert.match(page,/prefers-reduced-motion:reduce/);assert.match(studio,/href="\/video-studio\.html"/);
+});
