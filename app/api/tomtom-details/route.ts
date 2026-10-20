@@ -1,3 +1,4 @@
+import { extractTomtomContacts } from "@/app/lib/tomtom-contacts";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, requireSameOrigin, requireUser, readJsonObject } from "@/app/lib/radar-auth";
 
@@ -46,10 +47,9 @@ export async function POST(request: Request) {
     const data: unknown = await response.json();
     if (!data || typeof data !== "object" || Array.isArray(data)) return json({ error: "Resposta inesperada da TomTom." }, 502);
     const p = data as Record<string, unknown>;
-    const contacts = Array.isArray(p.contacts) ? p.contacts.filter(x => x && typeof x === "object") as Record<string,unknown>[] : [];
-    const values = (key: "phones"|"websites") => contacts.flatMap(c => Array.isArray(c[key]) ? c[key] as unknown[] : c[key.slice(0,-1)] ? [c[key.slice(0,-1)]] : []).flatMap(v => { if(typeof v === "string")return [v]; if(v && typeof v==="object"){const x=v as Record<string,unknown>;return [x.value,x.number,x.phoneNumber,x.url,x.address].filter((y):y is string=>typeof y==="string"&&!!y.trim());} return []; });
+    const contacts = extractTomtomContacts(p.contacts);
     const safeName = typeof p.title === "string" ? p.title.slice(0,180) : "";
-    return json({ id, name: safeName, phones: values("phones").slice(0,8), websites: values("websites").slice(0,8), temporary: true, trackingId });
+    return json({ id, name: safeName, phones: contacts.phones, websites: contacts.websites, temporary: true, trackingId });
   } catch {
     return json({ error: "Falha de comunicação com TomTom Details.", trackingId }, 502);
   }
