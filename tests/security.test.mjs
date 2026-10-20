@@ -290,3 +290,5 @@ assert.match(src,/DIREÇÃO DE ARTE: \$\{JSON.stringify\(creativeBrief\)\}/);ass
 // 5. Reject flawed generated output before user preview.
 assert.match(src,/SITE_QUALITY_GATE/);assert.match(src,/sem regra responsiva identificada/);assert.match(src,/WhatsApp sem número confirmado/);
 });
+
+test("Premium site photos: five safeguards",async()=>{const api=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(ui,/id="photos"/);assert.match(ui,/URLs, uma por linha/);assert.match(api,/safeHttpUrl\(x,500\)/);assert.match(api,/slice\(0,8\)/);assert.match(api,/Não pesquise nem copie fotos do Google Maps/);});
