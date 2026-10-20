@@ -158,7 +158,13 @@ export async function POST(request: Request) {
     }
     const html = cleanModelOutput(result.choices?.[0]?.message?.content);
     if (html.length < 80 || !/<html[\s>]/i.test(html)) return json({ error: "A resposta da IA veio incompleta. Tente gerar novamente com um briefing mais curto." }, 502);
-    if (html.length > MAX_HTML_CHARS) return json({ error: "O HTML gerado ficou grande demais. Peça uma versão mais simples." }, 502);\n    const warnings: string[]=[];\n    if (!/<meta[^>]+viewport/i.test(html)) warnings.push("Página sem metatag de viewport.");\n    if (!/@media/i.test(html)) warnings.push("Layout sem regra responsiva identificada.");\n    if (/<(?:td|span|p)[^>]*>\\s*(?:A consultar|A preencher)\\s*<\\//i.test(html)) warnings.push("Tabela de preços com valores fictícios ou genéricos.");\n    if (!data.whatsapp && /(?:wa\\.me|api\\.whatsapp\\.com)/i.test(html)) warnings.push("Link de WhatsApp sem número confirmado.");\n    if (warnings.length) return json({ error:"A versão produzida não atingiu os critérios mínimos de qualidade. Ajuste os dados e gere novamente.",code:"SITE_QUALITY_GATE",issues:warnings },422);
+    if (html.length > MAX_HTML_CHARS) return json({ error: "O HTML gerado ficou grande demais. Peça uma versão mais simples." }, 502);
+    const warnings: string[]=[];
+    if (!/<meta[^>]+viewport/i.test(html)) warnings.push("Página sem metatag de viewport.");
+    if (!/@media/i.test(html)) warnings.push("Layout sem regra responsiva identificada.");
+    if (/<(?:td|span|p)[^>]*>\s*(?:A consultar|A preencher)\s*<\//i.test(html)) warnings.push("Tabela de preços com valores fictícios ou genéricos.");
+    if (!data.whatsapp && /(?:wa\.me|api\.whatsapp\.com)/i.test(html)) warnings.push("Link de WhatsApp sem número confirmado.");
+    if (warnings.length) return json({ error:"A versão produzida não atingiu os critérios mínimos de qualidade. Ajuste os dados e gere novamente.",code:"SITE_QUALITY_GATE",issues:warnings },422);
     return json({
       html, model: MODEL,
       usage: {
