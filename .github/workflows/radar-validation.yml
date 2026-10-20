@@ -1,0 +1,39 @@
+name: Radar validation
+
+on:
+  push:
+    branches:
+      - fix/radar-metrics-and-lead-quality-20261019
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.25.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Security and regression tests
+        run: pnpm test:security
+      - name: Lint
+        run: pnpm lint
+      - name: Production build
+        run: pnpm build
