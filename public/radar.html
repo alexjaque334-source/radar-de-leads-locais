@@ -203,7 +203,8 @@
   }
   let detailQueueRunning=false;
   async function enrichOneLead(x){
-    if(!x?.placeId||x.detailsChecked||x.detailsPromise)return x;
+    if(!x?.placeId||x.detailsChecked)return x;
+    if(x.detailsPromise)return x.detailsPromise;
     x.detailsPromise=(async()=>{try{
       const response=await fetch('/api/tomtom-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.placeId,lat:x.lat,lon:x.lon})});
       if(!response.ok){if(response.status===429)throw Error('Limite temporário de consultas aos detalhes da TomTom.');return x}
@@ -212,7 +213,7 @@
       const website=Array.isArray(data.websites)?data.websites.find(v=>typeof v==='string'&&v.trim()):'';
       if(!x.phone&&phone)x.phone=phone;
       if(!x.site&&website){const url=safeUrl(website);if(url){const instagram=socialFromUrl(url,'instagram'),facebook=socialFromUrl(url,'facebook');if(instagram)x.instagram=instagram;else if(facebook)x.facebook=facebook;else x.site=url}}
-      x.detailsChecked=true;saveLeadResults();render();updateMetrics(['TomTom Places']);return x;
+      x.detailsChecked=true;x.score=score(x);saveLeadResults();render();updateMetrics(['TomTom Places']);return x;
     }finally{x.detailsPromise=null}})();return x.detailsPromise;
   }
   async function enrichVisibleContacts(){if(detailQueueRunning)return;detailQueueRunning=true;try{
