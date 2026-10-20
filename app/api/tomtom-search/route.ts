@@ -114,8 +114,8 @@ export async function POST(request: Request) {
     const places = objectArray(result.results).map((p) => {
       const a = isRecord(p.address) ? p.address : {};
       const contacts = objectArray(p.contacts);
-      const phone = contacts.flatMap(x => objectArray(x.phones).map(textValue)).find(Boolean) || "";
-      const website = contacts.flatMap(x => objectArray(x.websites).map(textValue)).find(Boolean) || "";
+      const phone = contacts.flatMap(x => (Array.isArray(x.phones) ? x.phones : x.phone ? [x.phone] : [])).map(v => { if(typeof v==="string")return v; if(isRecord(v))return textValue(v)||textValue(v.number)||textValue(v.phoneNumber);return ""; }).find(Boolean) || "";
+      const website = contacts.flatMap(x => (Array.isArray(x.websites) ? x.websites : x.website ? [x.website] : [])).map(v=>isRecord(v)?textValue(v)||textValue(v.website):textValue(v)).find(Boolean) || "";
       const pos = isRecord(p.position) ? p.position : {};
       const coordinates = Array.isArray(pos.coordinates) ? pos.coordinates : [];
       const poiTypes = objectArray(p.poiTypes);
