@@ -1,3 +1,4 @@
+import { extractTomtomContacts, tomtomAddress } from "@/app/lib/tomtom-contacts";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, isRecord, requireSameOrigin, requireUser, readJsonObject } from "@/app/lib/radar-auth";
 
@@ -113,9 +114,9 @@ export async function POST(request: Request) {
     }
     const places = objectArray(result.results).map((p) => {
       const a = isRecord(p.address) ? p.address : {};
-      const contacts = objectArray(p.contacts);
-      const phone = contacts.flatMap(x => (Array.isArray(x.phones) ? x.phones : x.phone ? [x.phone] : [])).map(v => { if(typeof v==="string")return v; if(isRecord(v))return textValue(v)||textValue(v.number)||textValue(v.phoneNumber);return ""; }).find(Boolean) || "";
-      const website = contacts.flatMap(x => (Array.isArray(x.websites) ? x.websites : x.website ? [x.website] : [])).map(v=>isRecord(v)?textValue(v)||textValue(v.website):textValue(v)).find(Boolean) || "";
+      const contact = extractTomtomContacts(p.contacts);
+      const phone = contact.phone;
+      const website = contact.website;
       const pos = isRecord(p.position) ? p.position : {};
       const coordinates = Array.isArray(pos.coordinates) ? pos.coordinates : [];
       const poiTypes = objectArray(p.poiTypes);
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
         id: textValue(p.id) || `${title || "place"}-${textValue(pos.lat)}-${textValue(pos.lon)}`,
         name: title || "Nome não informado pela TomTom",
         category: textValue(poiTypes[0]?.name) || category,
-        address: [a.street, a.houseNumber, a.municipalitySubdivision, a.municipality, a.countrySubdivision, a.postalCode].map(textValue).filter(Boolean).join(", ") || "Endereço não informado pela TomTom",
+        address: tomtomAddress(a,p.subtitles),
         phone, site: website, lat: Number.isFinite(Number(coordinates[1])) ? Number(coordinates[1]) : null,
         lon: Number.isFinite(Number(coordinates[0])) ? Number(coordinates[0]) : null,
         distance: Number.isFinite(Number(p.distanceInMeters)) ? Number(p.distanceInMeters) : null,
