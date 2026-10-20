@@ -276,3 +276,17 @@ test("Final release gate: CRM API is disabled in all five compliance checks",asy
  assert.doesNotMatch(route,/INSERT INTO|UPDATE radar_leads|DELETE FROM radar_leads/);
  assert.match(ui,/CRM desativado/);
 });
+
+test("Commercial site generator: five quality-control checks",async()=>{
+const src=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");
+// 1. Sector-matched visual directions prevent generic output.
+for(const sector of ["gastronomia","barbearia","beleza-saude","fitness","varejo","servicos"])assert.ok(src.includes(sector));
+// 2. Tangible palette, typography and hero direction for every vertical.
+assert.match(src,/const designTokens=/);assert.match(src,/palette:/);assert.match(src,/font:/);assert.match(src,/hero:/);
+// 3. Use real data only, and guard WhatsApp and menu placeholders.
+assert.match(src,/knownFacts: known|knownFacts:known/);assert.match(src,/Não chamar telefone de WhatsApp/);assert.match(src,/Não criar tabelas de preços/);
+// 4. System delivers clear art direction and factual briefing to the model.
+assert.match(src,/DIREÇÃO DE ARTE: \$\{JSON.stringify\(creativeBrief\)\}/);assert.match(src,/BRIEFING FACTUAL:/);
+// 5. Reject flawed generated output before user preview.
+assert.match(src,/SITE_QUALITY_GATE/);assert.match(src,/sem regra responsiva identificada/);assert.match(src,/WhatsApp sem número confirmado/);
+});
