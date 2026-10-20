@@ -276,3 +276,35 @@ test("Final release gate: CRM API is disabled in all five compliance checks",asy
  assert.doesNotMatch(route,/INSERT INTO|UPDATE radar_leads|DELETE FROM radar_leads/);
  assert.match(ui,/CRM desativado/);
 });
+
+test("Commercial site generator: five quality-control checks",async()=>{
+const src=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");
+// 1. Sector-matched visual directions prevent generic output.
+for(const sector of ["gastronomia","barbearia","beleza-saude","fitness","varejo","servicos"])assert.ok(src.includes(sector));
+// 2. Tangible palette, typography and hero direction for every vertical.
+assert.match(src,/const designTokens=/);assert.match(src,/palette:/);assert.match(src,/font:/);assert.match(src,/hero:/);
+// 3. Use real data only, and guard WhatsApp and menu placeholders.
+assert.match(src,/knownFacts: known|knownFacts:known/);assert.match(src,/Não chamar telefone de WhatsApp/);assert.match(src,/Não criar tabelas de preços/);
+// 4. System delivers clear art direction and factual briefing to the model.
+assert.match(src,/DIREÇÃO DE ARTE: \$\{JSON.stringify\(creativeBrief\)\}/);assert.match(src,/BRIEFING FACTUAL:/);
+// 5. Reject flawed generated output before user preview.
+assert.match(src,/SITE_QUALITY_GATE/);assert.match(src,/sem regra responsiva identificada/);assert.match(src,/WhatsApp sem número confirmado/);
+});
+
+test("Premium site photos: five safeguards",async()=>{const api=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(ui,/id="photos"/);assert.match(ui,/URLs, uma por linha/);assert.match(api,/safeHttpUrl\(x,500\)/);assert.match(api,/slice\(0,8\)/);assert.match(api,/Não pesquise nem copie fotos do Google Maps/);});
+
+test("Google Places Photos cost/consent: five release safeguards",async()=>{const api=await readFile(resolve(root,"app/api/google-place-photos/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(api,/requireUser\(request\)/);assert.match(api,/requireSameOrigin\(request\)/);assert.match(api,/confirmPaidRequests!==true/);assert.match(api,/GOOGLE_MAPS_API_KEY/);assert.match(api,/slice\(0,3\)/);assert.match(ui,/googlePhotosPreview/);assert.match(ui,/confirm\('Esta ação pode consumir franquia/);assert.match(ui,/não serão copiadas para o site/);});
+
+test("Business photos: five upload and composition safeguards",async()=>{const ui=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(ui,/id="imageMode"/);for(const mode of ["illustrative","own","mixed"])assert.match(ui,new RegExp('value="'+mode+'"'));assert.match(ui,/businessImages\.length>=10/);assert.match(ui,/file\.size>5\*1024\*1024/);assert.match(ui,/businessImages\.slice\(0,6\)/);assert.match(ui,/compressBusinessPhoto\(file\)/);assert.match(ui,/composeBusinessGallery\(next\)/);assert.match(ui,/não são enviadas à DeepSeek|html:removeBusinessGallery\(currentHtml\)/);});
+
+test("Assisted business media: security and attribution",async()=>{const api=await readFile(resolve(root,"app/api/business-media/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(api,/requireUser\(request\)/);assert.match(api,/requireSameOrigin\(request\)/);assert.match(api,/checkRateLimit\(/);assert.match(api,/redirect:"manual"/);assert.match(api,/safeSite\(body.site\)/);assert.match(api,/PEXELS_API_KEY/);assert.match(ui,/mediaRights/);assert.match(ui,/Definir capa/);assert.match(ui,/discoverSiteMedia/);assert.match(ui,/discoverUnsplash/);});
+
+test("R2 private authorized upload: five constraints",async()=>{const api=await readFile(resolve(root,"app/api/business-media/upload/route.ts"),"utf8");assert.match(api,/requireSameOrigin\(request\)/);assert.match(api,/requireUser\(request\)/);assert.match(api,/!env\.BUCKET/);assert.match(api,/authorized!=="yes"/);assert.match(api,/file\.size>5\*1024\*1024/);assert.match(api,/crypto\.randomUUID\(\)/);assert.match(api,/private:true/);});
+
+test("Unsplash illustration integration uses secret and honest source labels",async()=>{const api=await readFile(resolve(root,"app/api/business-media/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");const envType=await readFile(resolve(root,"cloudflare-env.d.ts"),"utf8");assert.match(api,/env\.UNSPLASH_ACCESS_KEY/);assert.match(api,/api\.unsplash\.com\/search\/photos/);assert.match(api,/Client-ID/);assert.match(api,/license:"unsplash"/);assert.match(ui,/discoverBusinessMedia\('unsplash'\)/);assert.match(ui,/Ilustrativa Unsplash/);assert.match(ui,/Ver fonte no Unsplash/);assert.match(envType,/UNSPLASH_ACCESS_KEY\?: string/);});
+
+test("Menu and library: script syntax and no automatic video generation",async()=>{const vm=await import("node:vm");for(const file of ["public/menu-studio.html","public/library.html"]){const html=await readFile(resolve(root,file),"utf8");assert.match(html,/<meta name="viewport"/);for(const script of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))assert.doesNotThrow(()=>new vm.Script(script[1]));assert.doesNotMatch(html,/MediaRecorder|video\/mp4|three\.js/i)}const menu=await readFile(resolve(root,"public/menu-studio.html"),"utf8");assert.match(menu,/alegon-menu-v1/);assert.match(menu,/prefers-reduced-motion/);assert.match(menu,/application\/json/);const lib=await readFile(resolve(root,"public/library.html"),"utf8");assert.match(lib,/image\/svg\+xml/);assert.ok(lib.includes('/api/library'));});
+test("Global ALEGON library: D1 isolation and admin-only publishing",async()=>{const sql=await readFile(resolve(root,"drizzle/0001_alegon_library.sql"),"utf8"),api=await readFile(resolve(root,"app/api/library/route.ts"),"utf8");assert.match(sql,/alegon_library_templates/);assert.match(sql,/alegon_library_projects/);assert.match(api,/requireUser\(request\)/);assert.match(api,/requireSameOrigin\(request\)/);assert.match(api,/global&&!isAdmin\(user.email\)/);assert.match(api,/WHERE user_id=\?/);assert.match(api,/published=1/);});
+
+test("SEO and security headers: public metadata, private application",async()=>{const config=await readFile(resolve(root,"next.config.ts"),"utf8"),robots=await readFile(resolve(root,"app/robots.ts"),"utf8"),sitemap=await readFile(resolve(root,"app/sitemap.ts"),"utf8"),landing=await readFile(resolve(root,"app/sobre/page.tsx"),"utf8");for(const header of ["X-Content-Type-Options","X-Frame-Options","Referrer-Policy","Content-Security-Policy","Permissions-Policy","Strict-Transport-Security"])assert.ok(config.includes(header));assert.match(robots,/admin\.html/);assert.match(robots,/api\//);assert.match(sitemap,/sobre/);assert.match(landing,/index:true/);assert.match(config,/noindex, nofollow/);});
+test("Sensitive registration errors are not logged to production",async()=>{const src=await readFile(resolve(root,"app/api/auth/register/route.ts"),"utf8");assert.doesNotMatch(src,/console\.error\("Cadastro Radar falhou"/);assert.match(src,/checkRateLimit\(/);assert.match(src,/hashPassword\(/);});
