@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     instagram: text(brief.instagram, 180), facebook: text(brief.facebook, 180),
     site: safeHttpUrl(brief.site, 500), googleProfileUrl: safeHttpUrl(brief.googleProfileUrl, 1000),
     services: text(brief.services, 1800), menu: text(brief.menu, 1800), style: text(brief.style, 500),
-    photos: typeof brief.photos === 'string' ? brief.photos.split(/[,\n]+/).map(x=>safeHttpUrl(x,500)).filter(Boolean).slice(0,8) : [],
+    photos: typeof brief.photos === 'string' ? brief.photos.split(/[,\s]+/).map(x=>safeHttpUrl(x,500)).filter(Boolean).slice(0,8) : [],
   };
   if (!data.businessName) return json({ error: "Informe o nome do negócio." }, 400);
   const image = isRecord(input.menuImage) ? input.menuImage : null;
