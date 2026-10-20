@@ -292,3 +292,5 @@ assert.match(src,/SITE_QUALITY_GATE/);assert.match(src,/sem regra responsiva ide
 });
 
 test("Premium site photos: five safeguards",async()=>{const api=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(ui,/id="photos"/);assert.match(ui,/URLs, uma por linha/);assert.match(api,/safeHttpUrl\(x,500\)/);assert.match(api,/slice\(0,8\)/);assert.match(api,/Não pesquise nem copie fotos do Google Maps/);});
+
+test("Google Places Photos cost/consent: five release safeguards",async()=>{const api=await readFile(resolve(root,"app/api/google-place-photos/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(api,/requireUser\(request\)/);assert.match(api,/requireSameOrigin\(request\)/);assert.match(api,/confirmPaidRequests!==true/);assert.match(api,/GOOGLE_MAPS_API_KEY/);assert.match(api,/slice\(0,3\)/);assert.match(ui,/googlePhotosPreview/);assert.match(ui,/confirm\('Esta ação pode consumir franquia/);assert.match(ui,/não serão copiadas para o site/);});
