@@ -32,8 +32,8 @@ export async function reserveSiteRequest(userId:string,projectId:string,leadKey:
 }
 export async function recordTokenUsage(userId:string,leadKey:string,month:string,inputTokens:number|undefined,outputTokens:number|undefined,reservedTokens:number){
  // Keep the conservative pre-charge if the provider does not report usage.
- if(!Number.isSafeInteger(inputTokens)||!Number.isSafeInteger(outputTokens)||inputTokens!<0||outputTokens!<0)return;
- const actual=inputTokens!+outputTokens!;
+ if(!Number.isSafeInteger(inputTokens)||!Number.isSafeInteger(outputTokens)||inputTokens<0||outputTokens<0)return;
+ const actual=inputTokens+outputTokens;
  if(actual<0||actual>500000)return;
  const database=db();if(!database)return;
  await database.batch([
