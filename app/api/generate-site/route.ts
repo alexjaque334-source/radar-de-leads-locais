@@ -1,3 +1,4 @@
+import { reserveCredits } from "@/app/lib/usage-credits";
 import { canonicalLeadKey,quotaStatus,reserveSiteRequest,recordTokenUsage } from "@/app/lib/site-ai-quotas";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, isRecord, requireSameOrigin, requireUser } from "@/app/lib/radar-auth";
@@ -143,6 +144,8 @@ export async function POST(request: Request) {
   if (imageUrl) userContent.push({ type: "image_url", image_url: { url: imageUrl, detail: "high" } });
 
   try {
+    const credits = await reserveCredits(actor.id, mode);
+    if ("error" in credits) return json({ error: credits.error, code: "CREDITS_EXHAUSTED" }, credits.status);
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
