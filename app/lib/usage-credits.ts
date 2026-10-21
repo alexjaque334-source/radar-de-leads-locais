@@ -1,6 +1,6 @@
 import { db } from "./radar-auth";
 
-export const MONTHLY_CREDITS = 500;
+export const MONTHLY_CREDITS = 700;
 export const CREDIT_COST = {
   discover: 10,
   details: 7,
