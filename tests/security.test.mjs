@@ -391,3 +391,12 @@ test("creative editor uses shared model and keeps brand files private", async ()
  assert.match(js,/ALEGON_ELEMENTS/);
  assert.doesNotMatch(html,/\.innerHTML\s*=/);
 });
+
+test("Creative editor tracks layer changes and handles failed images", async()=>{
+ const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ assert.match(html,/function commitEdit\(\)/);
+ assert.match(html,/visibility\.onclick=\(\)=>\{l\.hidden=!l\.hidden;renderLayers\(\);commitEdit\(\)/);
+ assert.match(html,/lock\.onclick=\(\)=>\{l\.locked=!l\.locked;renderLayers\(\);commitEdit\(\)/);
+ assert.match(html,/img\.complete\)\{img\.naturalWidth\?resolve\(\):reject/);
+ assert.match(html,/currentSnapshot=snapshotState\(\)/);
+});
