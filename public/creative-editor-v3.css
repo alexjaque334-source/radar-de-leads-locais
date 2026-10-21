@@ -66,3 +66,5 @@ body.creative-v3 #creativeNotification{position:fixed;bottom:16px;left:50%;trans
 .element-result:hover,.element-result:focus-visible{background:#304b79;border-color:#91abed}
 body.creative-v3 .custom-layer[data-kind=icon],body.creative-v3 .custom-layer[data-kind=image]{padding:0;display:flex;justify-content:center;align-items:center;overflow:visible}
 body.creative-v3 .custom-layer[data-kind=icon] svg{display:block;width:100%;height:100%}
+
+.position-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.position-actions button{font-size:11px;padding:8px 3px}.resize-handle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;z-index:10;border-radius:5px;background:#fff;border:3px solid #597df1;cursor:nwse-resize;touch-action:none}.stage.snap-center:before{border-left:1px solid #a7c4ff}.stage.snap-center{outline:1px solid #648ade}.stage.snap-middle{box-shadow:inset 0 0 0 2px #648ade,0 14px 40px #0007}
