@@ -336,3 +336,20 @@ test("DeepSeek reserves input and output tokens before any paid request",async()
  assert.match(sql,/output_tokens INTEGER NOT NULL/);
  assert.match(deploy,/drizzle\/0002_site_ai_quotas\.sql/);
 });
+
+test("Unified monthly credits have one fixed Discover cost for 10, 20 or 35 cards", async()=>{
+ const credit=await readFile(resolve(root,"app/lib/usage-credits.ts"),"utf8");
+ const search=await readFile(resolve(root,"app/api/tomtom-search/route.ts"),"utf8");
+ const ai=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");
+ const deploy=await readFile(resolve(root,"scripts/deploy-cloudflare.mjs"),"utf8");
+ const page=await readFile(resolve(root,"public/radar.html"),"utf8");
+ assert.match(credit,/MONTHLY_CREDITS = 700/);
+ assert.match(credit,/discover: 10/);
+ assert.match(search,/\[10, 20, 35\]\.includes\(requestedLimit\)/);
+ assert.match(search,/reserveCredits\(user.id, "discover"\)/);
+ assert.match(credit,/WHERE used\+excluded\.used<=\?/);
+ assert.match(ai,/reserveSiteRequest\(actor.id/);
+ assert.match(ai,/reserveCredits\(actor.id,mode\)/);
+ assert.match(deploy,/drizzle\/0003_usage_credits\.sql/);
+ assert.match(page,/id="creditsBalance"/);
+});
