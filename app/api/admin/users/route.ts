@@ -24,6 +24,15 @@ export async function PATCH(request: Request) {
   if (!admin) return json({ error: "Acesso restrito ao superadmin." }, 403);
   const binding = db(); if (!binding) return json({ error: "Banco indisponível." }, 503);
   const body = await readJsonObject(request, 2_048); if (!body) return json({ error: "Pedido inválido ou grande demais." }, 400);
+  if(body.planOnly===true){
+    const id=typeof body.id==="string"?body.id:"";
+    if(!id||!validPlan(body.plan)||id===admin.id)return json({error:"Conta ou plano inválido"},400);
+    const target=await binding.prepare("SELECT email,status FROM radar_users WHERE id=?").bind(id).first<{email:string;status:string}>();
+    if(!target||target.email.toLowerCase()===configuredAdminEmail())return json({error:"Conta protegida ou inexistente"},403);
+    if(target.status!=="approved")return json({error:"Aprove a conta antes de ativar um plano."},409);
+    await binding.prepare("INSERT INTO alegon_user_plans(user_id,requested_plan,active_plan) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET active_plan=excluded.active_plan,updated_at=CURRENT_TIMESTAMP").bind(id,body.plan,body.plan).run();
+    return json({ok:true,plan:body.plan});
+  }
   const id = typeof body.id === "string" ? body.id : "", status = body.status === "approved" ? "approved" : body.status === "rejected" ? "rejected" : "";
   if (!id || !status) return json({ error: "Conta ou decisão inválida." }, 400);
   if (id === admin.id) return json({ error: "A conta superadmin é protegida contra bloqueio e exclusão." }, 403);
