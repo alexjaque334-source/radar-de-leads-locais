@@ -270,12 +270,12 @@ document.getElementById('logoutBtn')?.addEventListener('click',async e=>{try{for
       const d=await response.json(),o=d.operations||{};
       balance.textContent=d.unlimited?'Conta de testes · sem limite comercial':d.remaining.toLocaleString('pt-BR')+' / '+d.limit.toLocaleString('pt-BR')+' créditos';
       document.getElementById('creditsBar').style.width=d.unlimited?'0%':Math.max(0,Math.min(100,d.limit?d.used/d.limit*100:0))+'%';
-      document.getElementById('creditsBreakdown').textContent='Buscas: '+(o.searches||0)+' · Detalhes: '+(o.details||0)+' · Localizações: '+(o.geocodes||0)+' · Sites gerados: '+(o.sitesGenerated||0)+' · Edições com IA: '+(o.aiEdits||0)+'+(d.unlimited?' Conta de testes isenta dos limites comerciais. As APIs externas continuam sujeitas a custos e proteções técnicas.':'. O limite real de tokens da DeepSeek continua independente.');
+      document.getElementById('creditsBreakdown').textContent='Buscas: '+(o.searches||0)+' · Detalhes: '+(o.details||0)+' · Localizações: '+(o.geocodes||0)+' · Sites gerados: '+(o.sitesGenerated||0)+' · Edições com IA: '+(o.aiEdits||0)+'+(d.unlimited?' Conta de testes isenta dos limites comerciais. As APIs externas continuam sujeitas a custos e proteções técnicas.':'. Os limites de uso da inteligência artificial são controlados pela plataforma.');
     }catch{balance.textContent='Saldo indisponível';document.getElementById('creditsBreakdown').textContent='Tente atualizar a página.'}
   }
   window.refreshUsageCredits=refreshUsageCredits;
   refreshUsageCredits();
 })();
 </script>
-</body>
+<script defer src="/alegon-navigation.js"></script></body>
 </html>
