@@ -34,6 +34,19 @@ export async function reserveCredits(userId: string, operation: CreditOperation)
   }
 }
 
+export async function refundCredits(userId: string, operation: CreditOperation) {
+  const database = db();
+  if (!database) return;
+  const month = new Date().toISOString().slice(0, 7);
+  const amount = CREDIT_COST[operation];
+  try {
+    await database.prepare(
+      `UPDATE alegon_usage_credits SET used=used-?, ${operation}=${operation}-1
+       WHERE user_id=? AND month=? AND used>=? AND ${operation}>0`
+    ).bind(amount,userId,month,amount).run();
+  } catch { /* A reconciliação operacional pode ser revisada pelo administrador. */ }
+}
+
 export async function creditStatus(userId: string) {
   const database = db();
   if (!database) return null;
