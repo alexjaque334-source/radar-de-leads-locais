@@ -22,6 +22,14 @@
   <main class="main">
     <div class="topline"><div class="crumb">Prospecção <span style="padding:0 6px">/</span> Buscar empresas</div><div class="profile"><div class="avatar">SL</div><span id="accountLabel">Acesso por conta</span></div></div>
     <section class="hero"><div><div class="eyebrow">SMART LEADS · PROSPECÇÃO</div><h1>Encontre oportunidades por região</h1><p>Pesquise por cidade, estado e bairro opcional. Cada cartão reúne os dados encontrados para um estabelecimento e indica a origem.</p></div><div class="source-badge">◉ Busca local · Brasil</div></section>
+    <section id="usageCreditsCard" aria-live="polite" style="background:#fff;border:1px solid #dfe6f2;border-radius:14px;padding:13px 16px;margin-bottom:18px;box-shadow:0 8px 25px rgba(21,39,77,.04)">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div><strong style="font-size:13px">Créditos de uso</strong><div style="font-size:11px;color:#71809c">Buscas e criação de sites na mesma franquia mensal</div></div>
+    <strong id="creditsBalance" style="font-size:19px;color:#284fc3">Carregando…</strong>
+  </div>
+  <div style="height:7px;margin:10px 0;background:#e9eef7;border-radius:999px;overflow:hidden"><div id="creditsBar" style="width:0;height:100%;background:#4268f5;border-radius:999px"></div></div>
+  <details><summary style="cursor:pointer;font-size:11px;color:#516388">Ver consumo por atividade</summary><div id="creditsBreakdown" style="font-size:11px;color:#64748b;line-height:1.9;padding-top:7px">Carregando…</div></details>
+</section>
     <section class="search-card">
       <div class="form-grid">
         <div class="field"><label for="state">Estado</label><select class="control" id="state"><option value="">UF</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
@@ -176,7 +184,7 @@
         body:JSON.stringify({city,state:stateName,neighborhood,category,categoryKey:cat,center:S.center,bounds:boundsOf(target),limit:Number($('limit').value)}),
         signal:ctrl.signal
       });
-      const tj=await tr.json();
+      const tj=await tr.json();window.refreshUsageCredits?.();
       if(!tr.ok)throw Error(tj.error||'A TomTom Places não concluiu a busca. Tente novamente em instantes.');
       S.tomtom=(tj.places||[]).map((p,i)=>{
         const instagram=socialFromUrl(p.site,'instagram'),facebook=socialFromUrl(p.site,'facebook');
@@ -207,7 +215,7 @@
     if(x.detailsPromise)return x.detailsPromise;
     x.detailsPromise=(async()=>{try{
       const response=await fetch('/api/tomtom-details',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.placeId,lat:x.lat,lon:x.lon})});
-      if(!response.ok){if(response.status===429)throw Error('Limite temporário de consultas aos detalhes da TomTom.');return x}
+      window.refreshUsageCredits?.();if(!response.ok){if(response.status===429)throw Error('Limite temporário de consultas aos detalhes da TomTom.');return x}
       const data=await response.json();
       const phone=Array.isArray(data.phones)?data.phones.find(v=>typeof v==='string'&&v.trim()):'';
       const website=Array.isArray(data.websites)?data.websites.find(v=>typeof v==='string'&&v.trim()):'';
@@ -251,5 +259,23 @@
 </script>
 <script>
 document.getElementById('logoutBtn')?.addEventListener('click',async e=>{try{for(let i=sessionStorage.length-1;i>=0;i--){const key=sessionStorage.key(i);if(key?.startsWith('radar-leads-session-v1:'))sessionStorage.removeItem(key)}}catch{};const b=e.currentTarget;b.disabled=true;b.querySelector('.nav-text').textContent='Saindo…';try{const r=await fetch('/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'}});if(!r.ok)throw new Error('logout failed');location.replace('/login.html?signedOut=1')}catch{b.disabled=false;b.querySelector('.nav-text').textContent='Sair da conta';alert('Não foi possível encerrar a sessão. Tente novamente.')}});
-</script></body>
+</script><script>
+(function(){
+  async function refreshUsageCredits(){
+    const balance=document.getElementById('creditsBalance');
+    if(!balance)return;
+    try{
+      const response=await fetch('/api/usage-credits',{cache:'no-store'});
+      if(!response.ok)throw new Error('unavailable');
+      const d=await response.json(),o=d.operations||{};
+      balance.textContent=d.remaining.toLocaleString('pt-BR')+' / '+d.limit.toLocaleString('pt-BR')+' créditos';
+      document.getElementById('creditsBar').style.width=Math.max(0,Math.min(100,d.used/d.limit*100))+'%';
+      document.getElementById('creditsBreakdown').textContent='Buscas: '+(o.searches||0)+' · Detalhes: '+(o.details||0)+' · Localizações: '+(o.geocodes||0)+' · Sites gerados: '+(o.sitesGenerated||0)+' · Edições com IA: '+(o.aiEdits||0)+'. O limite real de tokens da DeepSeek continua independente.';
+    }catch{balance.textContent='Saldo indisponível';document.getElementById('creditsBreakdown').textContent='Tente atualizar a página.'}
+  }
+  window.refreshUsageCredits=refreshUsageCredits;
+  refreshUsageCredits();
+})();
+</script>
+</body>
 </html>
