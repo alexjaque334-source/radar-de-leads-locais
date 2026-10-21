@@ -1,3 +1,4 @@
+import { reserveCredits } from "@/app/lib/usage-credits";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, requireSameOrigin, requireUser, readJsonObject } from "@/app/lib/radar-auth";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export async function POST(request:Request){
  url.searchParams.set("query",query);url.searchParams.set("countryCodesIso2","BR");url.searchParams.set("maxResults","5");url.searchParams.set("types","area");
  const trackingId=crypto.randomUUID();
  try{
+    const credits = await reserveCredits(user.id, "geocode");
+    if ("error" in credits) return respond({ error: credits.error, code: "CREDITS_EXHAUSTED" }, credits.status);
   const upstream=await fetch(url,{headers:{"TomTom-Api-Key":env.TOMTOM_API_KEY,"TomTom-Api-Version":"2","Attributes":"results","Accept-Language":"pt-BR","Tracking-Id":trackingId},signal:AbortSignal.timeout(12000)});
   if(!upstream.ok)return respond({error:upstream.status===429?"Limite de consultas TomTom atingido.":"Falha na consulta de geocodificação.",providerStatus:upstream.status,trackingId},upstream.status===429?429:502);
   const payload:unknown=await upstream.json();

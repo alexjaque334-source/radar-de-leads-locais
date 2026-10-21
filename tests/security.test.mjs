@@ -316,3 +316,40 @@ test("TomTom and studio UX: nested contacts, details enrichment and minimal firs
 test("Selected lead details are resolved before Studio navigation",async()=>{const radar=await readFile(resolve(root,"public/radar.html"),"utf8");assert.match(radar,/async function openStudioWithLead/);assert.match(radar,/await enrichOneLead\(x\)/);assert.match(radar,/if\(x.detailsPromise\)return x.detailsPromise/);assert.match(radar,/response.status===429/);});
 
 test("TomTom parser handles nested phones and websites without fabricated contacts",async()=>{const {extractTomtomContacts,tomtomAddress}=await import("../app/lib/tomtom-contacts.ts");const c=extractTomtomContacts([{phones:[{number:"+5541999999999"}],websites:[{url:"https://example.com"}]}]);assert.deepEqual(c.phones,["+5541999999999"]);assert.deepEqual(c.websites,["https://example.com"]);assert.equal(extractTomtomContacts([]).phone,"");assert.equal(tomtomAddress({street:"Rua A",houseNumber:"12"},[]),"Rua A, 12");});
+
+test("OSM only complements a selected TomTom establishment and never searches cities",async()=>{const route=await readFile(resolve(root,"app/api/osm-enrich/route.ts"),"utf8"),radar=await readFile(resolve(root,"public/radar.html"),"utf8");assert.match(route,/requireUser\(request\)/);assert.match(route,/requireSameOrigin\(request\)/);assert.match(route,/checkRateLimit/);assert.match(route,/around:45/);assert.match(route,/matchingName\(name,tags\)/);assert.match(route,/meters>60/);assert.match(route,/© OpenStreetMap contributors/);assert.doesNotMatch(route,/bbox=|OverpassQL.*city|googleapis\.com/);assert.match(radar,/if\(\(!x\.phone\|\|!x\.site\|\|!x\.email\)\&\&!x\.osmChecked\)await enrichWithOsm\(x\)/);assert.match(radar,/Complementar dados OSM/);assert.match(radar,/Perfil no Google/);});
+
+test("AI generation quotas bind project to each lead and cap three AI edits",async()=>{const quota=await readFile(resolve(root,"app/lib/site-ai-quotas.ts"),"utf8"),route=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8"),studio=await readFile(resolve(root,"public/studio.html"),"utf8");assert.match(quota,/generations<|generations=1/);assert.match(quota,/refinements<3/);assert.match(quota,/MAX_ACCOUNT_REQUESTS_MONTH=12/);assert.match(quota,/MAX_ACCOUNT_TOKENS_MONTH=90000/);assert.match(route,/reserveSiteRequest\(actor.id/);assert.match(route,/max_tokens: 7000/);assert.match(studio,/projectId,placeId,brief:values/);assert.match(studio,/aiEditsRemaining<=0/);assert.match(studio,/Editar na prévia/);});
+
+test("DeepSeek reserves input and output tokens before any paid request",async()=>{
+ const route=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");
+ const quota=await readFile(resolve(root,"app/lib/site-ai-quotas.ts"),"utf8");
+ const sql=await readFile(resolve(root,"drizzle/0002_site_ai_quotas.sql"),"utf8");
+ const deploy=await readFile(resolve(root,"scripts/deploy-cloudflare.mjs"),"utf8");
+ assert.match(route,/reservedTokens=new TextEncoder\(\)\.encode\(system\+promptText\)\.byteLength\+7000/);
+ assert.ok(route.indexOf("reserveSiteRequest(actor.id")<route.indexOf('fetch("https://api.deepseek.com/chat/completions"'));
+ assert.ok(route.indexOf("recordTokenUsage(actor.id")<route.indexOf("if (!response.ok)"));
+ assert.match(quota,/tokens\+excluded\.tokens<=\?/);
+ assert.match(quota,/input_tokens=input_tokens\+\?/);
+ assert.match(quota,/output_tokens=output_tokens\+\?/);
+ assert.match(sql,/input_tokens INTEGER NOT NULL/);
+ assert.match(sql,/output_tokens INTEGER NOT NULL/);
+ assert.match(deploy,/drizzle\/0002_site_ai_quotas\.sql/);
+});
+
+test("Unified monthly credits have one fixed Discover cost for 10, 20 or 35 cards", async()=>{
+ const credit=await readFile(resolve(root,"app/lib/usage-credits.ts"),"utf8");
+ const search=await readFile(resolve(root,"app/api/tomtom-search/route.ts"),"utf8");
+ const ai=await readFile(resolve(root,"app/api/generate-site/route.ts"),"utf8");
+ const deploy=await readFile(resolve(root,"scripts/deploy-cloudflare.mjs"),"utf8");
+ const page=await readFile(resolve(root,"public/radar.html"),"utf8");
+ assert.match(credit,/MONTHLY_CREDITS = 700/);
+ assert.match(credit,/discover: 10/);
+ assert.match(search,/\[10, 20, 35\]\.includes\(requestedLimit\)/);
+ assert.match(search,/reserveCredits\(user.id, "discover"\)/);
+ assert.match(credit,/WHERE used\+excluded\.used<=\?/);
+ assert.match(ai,/reserveSiteRequest\(actor.id/);
+ assert.match(ai,/reserveCredits\(actor.id,mode\)/);
+ assert.match(deploy,/drizzle\/0003_usage_credits\.sql/);
+ assert.match(page,/id="creditsBalance"/);
+});
