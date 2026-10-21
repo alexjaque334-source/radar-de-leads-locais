@@ -1,4 +1,5 @@
 import { db,sha256 } from "./radar-auth";
+import { isUnlimitedTestAccount } from "./usage-credits";
 export const MAX_ACCOUNT_REQUESTS_MONTH=12;
 export const MAX_ACCOUNT_TOKENS_MONTH=90000;
 export const MAX_REFINEMENTS=3;
@@ -9,6 +10,7 @@ export function canonicalLeadKey(brief:{name:string;address:string;city:string;s
 }
 export async function reserveSiteRequest(userId:string,projectId:string,leadKey:string,mode:"generate"|"refine",reservedTokens:number){
  const database=db();if(!database)return {error:"Banco indisponível para controlar créditos.",status:503};
+ if(await isUnlimitedTestAccount(userId))return {ok:true,projectId,leadKey,month:new Date().toISOString().slice(0,7),reservedTokens:0,refinements:0,requestId:crypto.randomUUID()};
  const month=new Date().toISOString().slice(0,7);
  if(!Number.isSafeInteger(reservedTokens)||reservedTokens<7000||reservedTokens>MAX_ACCOUNT_TOKENS_MONTH)return {error:"Este pedido excede o orçamento seguro de tokens. Reduza o HTML ou remova a imagem.",status:413};
  // Reserve budget BEFORE provider call. Failed provider requests still consume a slot: they may incur costs.
@@ -42,6 +44,7 @@ export async function recordTokenUsage(userId:string,leadKey:string,month:string
  ]);
 }
 export async function quotaStatus(userId:string,projectId:string,leadKey:string){
+ if(await isUnlimitedTestAccount(userId))return {hasGenerated:false,editsRemaining:999999,sameProject:true,monthlyRequestsRemaining:999999,monthlyTokensRemaining:999999};
  const database=db();if(!database)return null;
  try{
  const month=new Date().toISOString().slice(0,7);
