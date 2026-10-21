@@ -135,7 +135,9 @@ export async function POST(request: Request) {
   if(!projectId)return json({error:"Identificador de projeto obrigatório. Atualize a página do Studio.",code:"PROJECT_REQUIRED"},400);
   const placeId=typeof input.placeId==="string"?input.placeId:"";
   const leadKey=await (async()=>{const canonical=canonicalLeadKey({name:data.businessName,address:data.address,city:data.city,state:data.state},placeId);const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(canonical));return Array.from(new Uint8Array(bytes)).map(x=>x.toString(16).padStart(2,"0")).join("")})();
-  const quota=await reserveSiteRequest(actor.id,projectId,leadKey,mode);
+  // UTF-8 bytes conservatively cover text tokenization; reserve output and an image allowance too.
+  const reservedTokens=new TextEncoder().encode(system+promptText).byteLength+7000+(imageUrl?20000:0);
+  const quota=await reserveSiteRequest(actor.id,projectId,leadKey,mode,reservedTokens);
   if("error" in quota)return json({error:quota.error,code:"QUOTA_REACHED"},quota.status);
   const userContent: Array<Record<string, unknown>> = [{ type: "text", text: promptText }];
   if (imageUrl) userContent.push({ type: "image_url", image_url: { url: imageUrl, detail: "high" } });
@@ -157,6 +159,8 @@ export async function POST(request: Request) {
       choices?: Array<{ message?: { content?: unknown } }>;
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
     };
+    // Settle the pre-reserved budget as soon as provider usage is available, even for rejected HTML.
+    try { await recordTokenUsage(actor.id,leadKey,quota.month,result.usage?.prompt_tokens,result.usage?.completion_tokens,quota.reservedTokens); } catch { /* Leave conservative reservation in place. */ }
     if (!response.ok) {
       const status = response.status === 401 ? 502 : response.status === 402 ? 402 : response.status === 429 ? 429 : 502;
       const message = response.status === 401 ? "A DeepSeek recusou a chave. Confira o segredo DEEPSEEK_API_KEY."
@@ -174,7 +178,6 @@ export async function POST(request: Request) {
     if (/<(?:td|span|p)[^>]*>\s*(?:A consultar|A preencher)\s*<\//i.test(html)) warnings.push("Tabela de preços com valores fictícios ou genéricos.");
     if (!data.whatsapp && /(?:wa\.me|api\.whatsapp\.com)/i.test(html)) warnings.push("Link de WhatsApp sem número confirmado.");
     if (warnings.length) return json({ error:"A versão produzida não atingiu os critérios mínimos de qualidade. Ajuste os dados e gere novamente.",code:"SITE_QUALITY_GATE",issues:warnings },422);
-    try{await recordTokenUsage(actor.id,leadKey,quota.month,result.usage?.total_tokens??7000)}catch{/* budget is already reserved */}
     return json({
       html, model: MODEL,quota:{editsRemaining:Math.max(0,3-quota.refinements),generationsRemaining:0},
       usage: {
