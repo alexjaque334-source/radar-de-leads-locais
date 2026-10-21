@@ -1,4 +1,4 @@
-import { reserveCredits } from "@/app/lib/usage-credits";
+import { refundCredits, reserveCredits } from "@/app/lib/usage-credits";
 import { canonicalLeadKey,quotaStatus,reserveSiteRequest,recordTokenUsage } from "@/app/lib/site-ai-quotas";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, isRecord, requireSameOrigin, requireUser } from "@/app/lib/radar-auth";
@@ -138,14 +138,14 @@ export async function POST(request: Request) {
   const leadKey=await (async()=>{const canonical=canonicalLeadKey({name:data.businessName,address:data.address,city:data.city,state:data.state},placeId);const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(canonical));return Array.from(new Uint8Array(bytes)).map(x=>x.toString(16).padStart(2,"0")).join("")})();
   // UTF-8 bytes conservatively cover text tokenization; reserve output and an image allowance too.
   const reservedTokens=new TextEncoder().encode(system+promptText).byteLength+7000+(imageUrl?20000:0);
+  const credits=await reserveCredits(actor.id,mode);
+  if("error" in credits)return json({error:credits.error,code:"CREDITS_EXHAUSTED"},credits.status);
   const quota=await reserveSiteRequest(actor.id,projectId,leadKey,mode,reservedTokens);
-  if("error" in quota)return json({error:quota.error,code:"QUOTA_REACHED"},quota.status);
+  if("error" in quota){await refundCredits(actor.id,mode);return json({error:quota.error,code:"QUOTA_REACHED"},quota.status);}
   const userContent: Array<Record<string, unknown>> = [{ type: "text", text: promptText }];
   if (imageUrl) userContent.push({ type: "image_url", image_url: { url: imageUrl, detail: "high" } });
 
   try {
-    const credits = await reserveCredits(actor.id, mode);
-    if ("error" in credits) return json({ error: credits.error, code: "CREDITS_EXHAUSTED" }, credits.status);
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
