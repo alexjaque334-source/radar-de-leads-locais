@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS alegon_site_ai_usage (
  generations INTEGER NOT NULL DEFAULT 0 CHECK(generations BETWEEN 0 AND 1),
  refinements INTEGER NOT NULL DEFAULT 0 CHECK(refinements BETWEEN 0 AND 3),
  consumed_tokens INTEGER NOT NULL DEFAULT 0,
+ input_tokens INTEGER NOT NULL DEFAULT 0,
+ output_tokens INTEGER NOT NULL DEFAULT 0,
  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  PRIMARY KEY(user_id, lead_key)
 );
@@ -16,5 +18,7 @@ CREATE TABLE IF NOT EXISTS alegon_site_ai_monthly (
  requests INTEGER NOT NULL DEFAULT 0,
  generations INTEGER NOT NULL DEFAULT 0,
  tokens INTEGER NOT NULL DEFAULT 0,
+ input_tokens INTEGER NOT NULL DEFAULT 0,
+ output_tokens INTEGER NOT NULL DEFAULT 0,
  PRIMARY KEY(user_id,month)
 );
