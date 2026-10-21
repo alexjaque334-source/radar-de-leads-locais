@@ -1,3 +1,4 @@
+import { reserveCredits } from "@/app/lib/usage-credits";
 import { extractTomtomContacts, tomtomAddress } from "@/app/lib/tomtom-contacts";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, isRecord, requireSameOrigin, requireUser, readJsonObject } from "@/app/lib/radar-auth";
@@ -78,6 +79,8 @@ export async function POST(request: Request) {
   const trackingId = crypto.randomUUID();
 
   try {
+    const credits = await reserveCredits(user.id, "discover");
+    if ("error" in credits) return json({ error: credits.error, code: "CREDITS_EXHAUSTED" }, credits.status);
     const response = await fetch("https://api.tomtom.com/maps/orbis/places/discover", {
       method: "POST",
       headers: {
