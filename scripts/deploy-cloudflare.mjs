@@ -21,4 +21,5 @@ const wrangler = "node_modules/wrangler/bin/wrangler.js";
 run([wrangler, "d1", "execute", databaseName, "--remote", "--file", "drizzle/0000_tense_vengeance.sql", "--config", "dist/server/wrangler.json"]);
 run([wrangler, "d1", "execute", databaseName, "--remote", "--file", "drizzle/0002_site_ai_quotas.sql", "--config", "dist/server/wrangler.json"]);
 run([wrangler, "d1", "execute", databaseName, "--remote", "--file", "drizzle/0003_usage_credits.sql", "--config", "dist/server/wrangler.json"]);
+run([wrangler, "d1", "execute", databaseName, "--remote", "--file", "drizzle/0004_subscription_plans.sql", "--config", "dist/server/wrangler.json"]);
 run([wrangler, "deploy", "--config", "dist/server/wrangler.json"]);
