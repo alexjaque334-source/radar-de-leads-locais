@@ -356,3 +356,38 @@ test("Unified monthly credits have one fixed Discover cost for 10, 20 or 35 card
 });
 
 test("Subscription tiers: signup requests never confer paid access; library is server-guarded", async()=>{const read=async p=>readFile(resolve(root,p),"utf8");const [migration,signup,admin,library,subscriptions,deploy]=await Promise.all(["drizzle/0004_subscription_plans.sql","app/api/auth/register/route.ts","app/api/admin/users/route.ts","app/api/library/route.ts","app/lib/subscriptions.ts","scripts/deploy-cloudflare.mjs"].map(read));assert.match(signup,/requested_plan,active_plan/);assert.match(signup,/essential/);assert.match(admin,/planOnly/);assert.match(admin,/validPlan/);assert.match(library,/requirePlan\(request,"pro"\)/);assert.match(subscriptions,/PLAN_REQUIRED/);assert.match(migration,/alegon_user_plans/);assert.match(deploy,/0004_subscription_plans/);});
+
+
+test("creative canvas format and reusable element normalization", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const core = await readFile(resolve(root, "public/creative-core.js"), "utf8");
+  const ctx = { crypto: { randomUUID: () => "test-uuid-1234" } };
+  runInNewContext(core, ctx);
+  const model = ctx.ALEGON_CREATIVE_CORE;
+  assert.equal(model.dimensions("wide").width, 1920);
+  assert.equal(model.dimensions("post").height, 1080);
+  assert.equal(model.dimensions("unknown").height, 1920);
+  const project = model.safeProject({ canvasFormat:"wide",layers:[
+    {id:"abcdefgh",kind:"icon",icon:"globe",x:200,width:95,color:"invalid"},
+    {id:"ijklmnop",kind:"image",image:"javascript:alert(1)"},
+    {id:"qrstuvwx",kind:"rect",width:45,y:-25},
+  ] });
+  assert.equal(project.canvasFormat,"wide");
+  assert.equal(project.layers[0].kind,"icon");
+  assert.equal(project.layers[0].x,5);
+  assert.equal(project.layers[0].color,"#ffffff");
+  assert.equal(project.layers[1].image,"");
+  assert.equal(project.layers[2].y,0);
+  assert.equal(model.align({id:"abcdefgh",kind:"icon",width:20,x:0}, "x", 50).x,40);
+});
+
+test("creative editor uses shared model and keeps brand files private", async () => {
+ const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ const js=await readFile(resolve(root,"public/alegon-elements.js"),"utf8");
+ assert.match(html,/creative-core\.js/);
+ assert.match(html,/safeProject\(d\)/);
+ assert.match(html,/layer\.kind==='icon'/);
+ assert.match(html,/canvasFormat/);
+ assert.match(js,/ALEGON_ELEMENTS/);
+ assert.doesNotMatch(html,/\.innerHTML\s*=/);
+});
