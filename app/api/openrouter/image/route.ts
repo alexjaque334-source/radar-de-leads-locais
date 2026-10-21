@@ -19,10 +19,10 @@ export async function POST(request:Request){
  const reservation=await reserveOpenRouter(access.user.id,access.plan.active,"image");if(!("ok" in reservation))return privateJson({error:reservation.error},reservation.status);
  let submitted=false;
  try{
-  const body:Record<string,unknown>={model:selected.id,prompt,n:1,size:"1024x1024",response_format:"b64_json"};
-  if(image)body.image=image;
-  // OpenRouter native Images API supports generation and edits using the same endpoint.
-  const resp=await fetch("https://openrouter.ai/api/v1/images/"+(mode==="edit"?"edits":"generations"),{method:"POST",headers:headers(key),body:JSON.stringify(body),signal:AbortSignal.timeout(55_000)});
+  const body:Record<string,unknown>={model:selected.id,prompt,n:1,resolution:"1K",aspect_ratio:"1:1"};
+  if(image)body.input_references=[{type:"image_url",image_url:{url:image}}];
+  // OpenRouter native Images API supports generation and reference-guided edits at one endpoint.
+  const resp=await fetch("https://openrouter.ai/api/v1/images",{method:"POST",headers:headers(key),body:JSON.stringify(body),signal:AbortSignal.timeout(55_000)});
   submitted=true;
   const json=await resp.json() as {data?:Array<{b64_json?:string;url?:string}>;error?:{message?:string}};
   if(!resp.ok){
