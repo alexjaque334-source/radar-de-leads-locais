@@ -13,8 +13,7 @@ const allowlist:Record<Purpose,ModelInfo[]>={
  image:[
   {id:"bytedance-seed/seedream-5-0-flash",label:"Seedream 5.0 Flash · econômico",minPlan:"pro"},
   {id:"qwen/qwen-image-2.1-turbo",label:"Qwen Image 2.1 Turbo",minPlan:"pro"},
-  {id:"qwen/qwen-image-2.1-pro",label:"Qwen Image 2.1 Pro · premium",minPlan:"premium"},
-  {id:"openai/gpt-image-2",label:"GPT Image 2 · premium",minPlan:"premium"}
+  {id:"qwen/qwen-image-2.1-pro",label:"Qwen Image 2.1 Pro · premium",minPlan:"premium"}
  ]
 };
 export function modelsFor(plan:Plan,purpose:Purpose){return allowlist[purpose].filter(x=>rank[plan]>=rank[x.minPlan]);}
