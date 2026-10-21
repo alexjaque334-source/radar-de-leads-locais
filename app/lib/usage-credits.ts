@@ -1,6 +1,15 @@
 import { db } from "./radar-auth";
 
 export const MONTHLY_CREDITS = 700;
+// Server-only QA exception; compare the authenticated database account, never client-provided email.
+export async function isUnlimitedTestAccount(userId: string): Promise<boolean> {
+  const database = db();
+  if (!database) return false;
+  try {
+    const user = await database.prepare("SELECT email,status FROM radar_users WHERE id=? LIMIT 1").bind(userId).first<{email:string;status:string}>();
+    return user?.status === "approved" && user.email.trim().toLowerCase() === "alexjak334@gmail.com";
+  } catch { return false; }
+}
 export const CREDIT_COST = {
   discover: 10,
   details: 7,
@@ -11,6 +20,7 @@ export const CREDIT_COST = {
 export type CreditOperation = keyof typeof CREDIT_COST;
 
 export async function reserveCredits(userId: string, operation: CreditOperation) {
+  if (await isUnlimitedTestAccount(userId)) return { ok: true, cost: 0 };
   const database = db();
   if (!database) return { error: "Controle de créditos indisponível.", status: 503 };
   const month = new Date().toISOString().slice(0, 7);
@@ -35,6 +45,7 @@ export async function reserveCredits(userId: string, operation: CreditOperation)
 }
 
 export async function refundCredits(userId: string, operation: CreditOperation) {
+  if (await isUnlimitedTestAccount(userId)) return;
   const database = db();
   if (!database) return;
   const month = new Date().toISOString().slice(0, 7);
@@ -48,6 +59,7 @@ export async function refundCredits(userId: string, operation: CreditOperation) 
 }
 
 export async function creditStatus(userId: string) {
+  if (await isUnlimitedTestAccount(userId)) return { month: new Date().toISOString().slice(0,7), unlimited: true, limit: 700, used: 0, remaining: 700, operations: { searches: 0, details: 0, geocodes: 0, sitesGenerated: 0, aiEdits: 0 }, costs: CREDIT_COST, note: "Conta de testes isenta das cotas comerciais." };
   const database = db();
   if (!database) return null;
   const month = new Date().toISOString().slice(0, 7);
