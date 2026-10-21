@@ -253,7 +253,8 @@ test("motion cover templates: five privacy and usability safeguards",async()=>{
  // 4. Text injected with textContent only; no arbitrary HTML.
  assert.match(page,/\$\('outTitle'\)\.textContent/);assert.doesNotMatch(page,/\.innerHTML\s*=/);
  // 5. Motion accessibility and discoverability.
- assert.match(page,/prefers-reduced-motion:reduce/);assert.match(studio,/href="\/video-studio\.html"/);
+ assert.match(page,/prefers-reduced-motion:reduce/);assert.doesNotMatch(studio,/href="\/video-studio\.html"/);
+ const radar=await readFile(resolve(root,"public/radar.html"),"utf8");assert.match(radar,/href="\/video-studio\.html"/);
 });
 
 test("superadmin account deletion: five safety checks",async()=>{
