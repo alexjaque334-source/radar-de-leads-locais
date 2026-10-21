@@ -1,3 +1,4 @@
+import { reserveCredits } from "@/app/lib/usage-credits";
 import { extractTomtomContacts } from "@/app/lib/tomtom-contacts";
 import { env } from "cloudflare:workers";
 import { checkRateLimit, requireSameOrigin, requireUser, readJsonObject } from "@/app/lib/radar-auth";
@@ -25,6 +26,8 @@ export async function POST(request: Request) {
   if (validOrigin) url.searchParams.set("origin", `${lon},${lat}`);
   const trackingId = crypto.randomUUID();
   try {
+    const credits = await reserveCredits(user.id, "details");
+    if ("error" in credits) return json({ error: credits.error, code: "CREDITS_EXHAUSTED" }, credits.status);
     const response = await fetch(url, {
       method: "GET",
       headers: {
