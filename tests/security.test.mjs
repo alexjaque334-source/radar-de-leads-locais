@@ -386,7 +386,7 @@ test("creative editor uses shared model and keeps brand files private", async ()
  const js=await readFile(resolve(root,"public/alegon-elements.js"),"utf8");
  assert.match(html,/creative-core\.js/);
  assert.match(html,/safeProject\(d\)/);
- assert.match(html,/layer\.kind==='icon'/);
+ assert.match(html,/creative-export\.js/);
  assert.match(html,/canvasFormat/);
  assert.match(js,/ALEGON_ELEMENTS/);
  assert.doesNotMatch(html,/\.innerHTML\s*=/);
