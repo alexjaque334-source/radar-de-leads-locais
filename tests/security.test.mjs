@@ -508,3 +508,19 @@ test("Creative groups preserve multi-selection and clamp joint movement",async()
  assert.equal(ctx.ALEGON_CREATIVE_CORE.layer({...grouped.layers[0]}).groupId,grouped.groupId);
  for(const id of ["groupLayers","ungroupLayers","clearMultiSelection"])assert.ok(editor.includes('id="'+id+'"'));
 });
+
+test("Creative photo framing and filters persist safely between pages",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [image,core,pages,editor]=await Promise.all(["public/creative-image.js","public/creative-core.js","public/creative-pages.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={crypto:{randomUUID:()=>"12345678-1234-4234-8234-123456789012"}};
+ runInNewContext(image+"\n"+core+"\n"+pages,context);
+ const filters=context.ALEGON_CREATIVE_IMAGE;
+ const safe=filters.normalize({imageZoom:900,imageContrast:-5,imageBlur:999,imageMask:"unsafe"});
+ assert.equal(safe.imageZoom,300);assert.equal(safe.imageContrast,30);assert.equal(safe.imageBlur,10);assert.equal(safe.imageMask,"square");
+ const layer=context.ALEGON_CREATIVE_CORE.layer({id:"aaaabbbb",kind:"image",imageZoom:155,imageX:24,imageMask:"circle",imageBrightness:120});
+ assert.equal(layer.imageZoom,155);assert.equal(layer.imageMask,"circle");
+ const saved=context.ALEGON_CREATIVE_PAGES.documentModel({pages:[{layers:[layer],coverZoom:"160",coverContrast:"112"}]});
+ assert.equal(saved.pages[0].layers[0].imageX,24);assert.equal(saved.pages[0].coverZoom,"160");
+ for(const id of ["imageReplace","imageFit","imageZoom","imageContrast","imageMask","coverPositionX","coverPositionY"])assert.ok(editor.includes('id="'+id+'"'));
+ assert.match(editor,/Object\.assign\(img\.style,window\.ALEGON_CREATIVE_IMAGE\.imageStyle\(l\)\)/);
+});
