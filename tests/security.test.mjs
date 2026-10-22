@@ -524,3 +524,20 @@ test("Creative photo framing and filters persist safely between pages",async()=>
  for(const id of ["imageReplace","imageFit","imageZoom","imageContrast","imageMask","coverPositionX","coverPositionY"])assert.ok(editor.includes('id="'+id+'"'));
  assert.match(editor,/Object\.assign\(img\.style,window\.ALEGON_CREATIVE_IMAGE\.imageStyle\(l\)\)/);
 });
+
+test("ALEGON Criativo expands original assets and preserves safe template searches",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [icons,templates,page]=await Promise.all(["public/alegon-elements.js","public/creative-templates.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={window:{}};
+ runInNewContext(icons+"\n"+templates,context);
+ const elements=context.window.ALEGON_ELEMENTS,catalog=context.window.ALEGON_DESIGN_TEMPLATES;
+ assert.ok(elements.icons.length>=100);
+ assert.ok(elements.search("instagram").length>0);
+ assert.ok(elements.search("veterinário").length>0);
+ assert.ok(catalog.all.length>=20);
+ assert.ok(catalog.find("barbearia").some(t=>t.id==="barber"));
+ assert.ok(catalog.find("promoção").length>0);
+ for(const id of ["designSearch","designCategory","designResults","brandKitName","saveBrandKit","applyBrandKit","favoritesOnly"])assert.ok(page.includes('id="'+id+'"'));
+ assert.match(page,/favoriteKey\(\)/);
+ assert.match(page,/ALEGON_DESIGN_TEMPLATES/);
+});
