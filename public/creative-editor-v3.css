@@ -68,3 +68,5 @@ body.creative-v3 .custom-layer[data-kind=icon],body.creative-v3 .custom-layer[da
 body.creative-v3 .custom-layer[data-kind=icon] svg{display:block;width:100%;height:100%}
 
 .position-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.position-actions button{font-size:11px;padding:8px 3px}.resize-handle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;z-index:10;border-radius:5px;background:#fff;border:3px solid #597df1;cursor:nwse-resize;touch-action:none}.stage.snap-center:before{border-left:1px solid #a7c4ff}.stage.snap-center{outline:1px solid #648ade}.stage.snap-middle{box-shadow:inset 0 0 0 2px #648ade,0 14px 40px #0007}
+
+body.creative-v3 #stage.show-grid{background-image:linear-gradient(to right,#d7e6ff1a 1px,transparent 1px),linear-gradient(to bottom,#d7e6ff1a 1px,transparent 1px),var(--bg);background-size:10% 10%;}
