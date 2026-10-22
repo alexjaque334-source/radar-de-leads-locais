@@ -51,7 +51,7 @@ const FIELDS=['canvasFormat','projectName','brand','template','headline','subtit
 const defaults={canvasFormat:'story',projectName:'Minha capa ALEGON',brand:'SUA MARCA',template:'cinematic',headline:'Sua marca em destaque',subtitle:'Sua próxima experiência começa aqui.',cta:'Saiba mais',accent:'#5b85ff',align:'left',titleSize:'35',speed:'9',brightness:'55',shade:'70'};
 const status=s=>{$('status').textContent=s};
 function getData(){const d={};for(const key of FIELDS)d[key]=$(key).value;d.layers=layers.map(x=>({...x}));d.photoSrc=cloudPhotoSrc;return d}
-function fill(d){cloudPhotoSrc=window.ALEGON_CREATIVE_CORE.cloudAsset(d?.photoSrc);if(cloudPhotoSrc){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl='';photoImage=new Image();photoImage.src=cloudPhotoSrc;$('stage').style.setProperty('--bg','url("'+cloudPhotoSrc+'")')}for(const key of FIELDS)if(typeof d?.[key]==='string')$(key).value=d[key];layers=window.ALEGON_CREATIVE_CORE.safeProject(d).layers;selectedLayerId='';update();renderLayers()}
+function fill(d){resetPhoto();cloudPhotoSrc=window.ALEGON_CREATIVE_CORE.cloudAsset(d?.photoSrc);if(cloudPhotoSrc){photoImage=new Image();photoImage.src=cloudPhotoSrc;$('stage').style.setProperty('--bg','url("'+cloudPhotoSrc+'")')}for(const key of FIELDS)if(typeof d?.[key]==='string')$(key).value=d[key];layers=window.ALEGON_CREATIVE_CORE.safeProject(d).layers;selectedLayerId='';update();renderLayers()}
 function update(){
  const d=getData(),s=$('stage');s.dataset.format=d.canvasFormat;s.dataset.template=d.template;s.dataset.align=d.align;
  s.style.setProperty('--accent',d.accent);s.style.setProperty('--title-size',d.titleSize+'px');
@@ -92,7 +92,7 @@ async function uploadCreativeImage(source){
  if(window.ALEGON_CREATIVE_CORE.cloudAsset(source))return source;
  if(!source)return '';
  if(!source.startsWith('blob:')&&!source.startsWith('data:image/'))throw Error('Salvamento de imagem externa não permitido. Envie a imagem pelo editor.');
- const response=await fetch(source);if(!response.ok)throw Error('A imagem selecionada não pôde ser lida.');
+ const response=await fetch(source,{credentials:'same-origin'});if(!response.ok)throw Error('A imagem selecionada não pôde ser lida.');
  const blob=await response.blob();if(blob.size>5*1024*1024)throw Error('Imagem acima de 5 MB. Reduza o arquivo antes de salvar.');
  if(!['image/jpeg','image/png','image/webp'].includes(blob.type))throw Error('Formato de imagem inválido.');
  const form=new FormData();form.append('image',blob,'imagem.'+(blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg'));form.append('authorized','yes');
@@ -113,7 +113,7 @@ $('saveLibrary').onclick=async()=>{
   const r=await fetch('/api/library',{method:savedProjectId?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)});
   const j=await r.json();if(!r.ok)throw Error(j.error||'Não foi possível salvar');
   if(typeof j.id==='string')savedProjectId=j.id;
-  cloudPhotoSrc=d.photoSrc;layers=nextLayers;renderLayers();
+  cloudPhotoSrc=d.photoSrc;layers=nextLayers;renderLayers();commitEdit();
   status('Projeto e imagens salvos na sua conta. Você pode reabrir em outro dispositivo.');
  }catch(e){status(e.message||'Falha ao salvar. O projeto não foi marcado como sincronizado.')}finally{btn.disabled=false}
 };
