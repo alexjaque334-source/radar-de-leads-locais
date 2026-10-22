@@ -29,3 +29,7 @@ Etapa prioritária atual: **6 — agrupamento de elementos**. Controles de fonte
 
 ## Etapa 6 — andamento
 Seleção múltipla por Ctrl/clique, identificação persistida de grupos, movimento simultâneo de elementos, desagrupamento e regressões automatizadas foram adicionados. Falta homologação visual por usuário após publicação autorizada, sem declarar a etapa completa prematuramente.
+
+
+## Etapa 7 — tratamento de imagens
+Adicionados: enquadramento cover/contain, posição X/Y, zoom, máscaras quadrada/arredondada/circular, brilho/contraste/saturação/preto-e-branco/sépia/desfoque, substituição mantendo geometria, ajustes de capa e persistência no modelo de páginas. Faltam testes visuais de fidelidade e interação, reservados à homologação.
