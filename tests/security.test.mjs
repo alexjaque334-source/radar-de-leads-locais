@@ -438,3 +438,5 @@ test("Creative projects store private asset references and update existing recor
  assert.match(api,/BUCKET\.head\("creative-assets\/"/);assert.match(exporter,/credentials:ownedAsset\?'same-origin':'omit'/);
  assert.doesNotMatch(editor,/\.innerHTML\s*=/);
 });
+
+test("Creative uploads use private authenticated assets instead of embedding large images",async()=>{const editor=await readFile(resolve(root,"public/video-studio.html"),"utf8");const route=await readFile(resolve(root,"app/api/creative-assets/route.ts"),"utf8");assert.match(editor,/form\.append\('image',file\)/);assert.match(editor,/fetch\('\/api\/creative-assets',\{method:'POST'/);assert.match(editor,/file\.size>5\*1024\*1024/);assert.match(route,/requirePlan\(request,"pro"\)/);assert.match(route,/auth\.user\.id/);assert.match(route,/X-Content-Type-Options/);});
