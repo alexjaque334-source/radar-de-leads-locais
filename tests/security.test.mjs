@@ -490,3 +490,21 @@ test("Creative typography presets persist across pages with safe CSS values",asy
  assert.match(editor,/id="textPreset"/);assert.match(editor,/id="layerEffect"/);
  assert.match(editor,/textStyle\(l\)/);
 });
+
+test("Creative groups preserve multi-selection and clamp joint movement",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [code,core,editor]=await Promise.all(["public/creative-groups.js","public/creative-core.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const ctx={crypto:{randomUUID:()=> "12345678-1234-4234-8234-123456789012"}};
+ runInNewContext(code,ctx);runInNewContext(core,ctx);
+ const api=ctx.ALEGON_CREATIVE_GROUPS;
+ const sample=[{id:"aaaa1111",x:10,y:10,width:20},{id:"bbbb2222",x:40,y:15,width:20}];
+ const grouped=api.group(sample,["aaaa1111","bbbb2222"]);
+ assert.ok(grouped.groupId);
+ assert.equal(grouped.layers[0].groupId,grouped.layers[1].groupId);
+ assert.deepEqual(Array.from(api.groupIds(grouped.layers,"aaaa1111")),["aaaa1111","bbbb2222"]);
+ const moved=api.translate(grouped.layers,["aaaa1111","bbbb2222"],100,100);
+ assert.equal(moved[1].x,80);assert.equal(moved[0].x,50);
+ assert.equal(api.ungroup(grouped.layers,grouped.groupId)[0].groupId,"");
+ assert.equal(ctx.ALEGON_CREATIVE_CORE.layer({...grouped.layers[0]}).groupId,grouped.groupId);
+ for(const id of ["groupLayers","ungroupLayers","clearMultiSelection"])assert.ok(editor.includes('id="'+id+'"'));
+});
