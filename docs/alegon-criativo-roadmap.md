@@ -37,3 +37,7 @@ Adicionados: enquadramento cover/contain, posição X/Y, zoom, máscaras quadrad
 
 ## Etapa 8 — biblioteca ampliada
 Ampliação do catálogo para mais de 100 ícones vetoriais originais em novas categorias de setores locais; 20 modelos editáveis por segmento com busca e filtro; favoritos de ícones e kit de cores e nome da marca por usuário no armazenamento local do navegador. Os favoritos e o kit de marca não sincronizam entre dispositivos: exigem evolução posterior para persistência privada na nuvem. Falta homologação visual geral antes do lançamento.
+
+
+### Etapa 8 — complemento: sincronização privada de identidade e favoritos
+API autenticada `/api/creative-preferences` para contas Pro; migração D1 `0006_creative_preferences.sql`; favoritos e nome/cores de marca persistidos por `user_id`. Ao entrar, o editor carrega preferências do servidor e pode migrar valores locais quando ainda não existe um registro; mantém fallback local quando indisponível. Testes automatizados de permissão, entrada e migração adicionados. A sincronização real entre navegadores fica pendente da homologação e da aplicação da migração no ambiente de publicação; sem merge/deploy.
