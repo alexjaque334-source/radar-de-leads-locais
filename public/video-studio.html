@@ -28,7 +28,7 @@
 <div class="actions"><button id="reset" class="secondary" type="button">Restaurar exemplo</button><button id="replay" class="secondary" type="button">Reiniciar animação</button></div>
 </section>
 <section class="panel editor-panel" data-panel="elements"><h2>Adicionar elementos</h2><p class="creative-help">Combine títulos e formas no design. Selecione cada elemento para mover, alterar cores e ajustar a posição.</p><div class="creative-tool-grid"><button type="button" class="creative-tool-action" id="addTextQuick"><span>T</span>Texto</button><button type="button" class="creative-tool-action" id="addRect"><span>▰</span>Retângulo</button><button type="button" class="creative-tool-action" id="addCircle"><span>●</span>Círculo</button><button type="button" class="creative-tool-action" id="addLine"><span>━</span>Linha</button></div><div class="element-finder"><label for="elementSearch">Buscar elementos</label><input id="elementSearch" type="search" placeholder="Ex.: google, mapas, barbearia, comida, estrelas" autocomplete="off"><label for="elementCategory">Categoria</label><select id="elementCategory"></select><div id="elementResults" class="element-results" aria-live="polite"></div><p class="creative-help">Ícones originais editáveis. Para usar uma marca, envie seu próprio logotipo autorizado.</p><label for="elementUpload">Adicionar logotipo ou imagem própria</label><input id="elementUpload" type="file" accept="image/png,image/jpeg,image/webp"><p class="creative-help">Até 5 MB por imagem, salva de forma privada na sua conta. Utilize somente arquivos autorizados.</p></div></section><section class="panel editor-panel" data-panel="layers"><h2>Elementos e camadas</h2><p class="hint">Arraste elementos, ajuste pelo canto para redimensionar e use guias inteligentes. Teclas de seta movem o elemento selecionado; Shift move mais rápido.</p><div class="actions"><button id="addLayer" type="button">+ Adicionar texto</button><button id="cloneLayer" class="secondary" type="button">Duplicar seleção</button><button id="deleteLayer" class="secondary" type="button">Excluir seleção</button><button id="copyLayer" class="secondary" type="button">Copiar</button><button id="pasteLayer" class="secondary" type="button">Colar</button></div><div id="layerList" aria-label="Camadas"></div><div class="actions"><button id="flipHorizontal" class="secondary" type="button">Espelhar ↔</button><button id="flipVertical" class="secondary" type="button">Espelhar ↕</button><button id="toggleGrid" class="secondary" type="button" aria-pressed="false">Grade</button></div><div class="properties-mini"><label for="layerSnap"><input type="checkbox" id="layerSnap" checked style="width:auto"> Alinhamento inteligente</label><div class="position-actions"><button type="button" class="secondary" id="alignLeft">Esquerda</button><button type="button" class="secondary" id="alignCenter">Centralizar</button><button type="button" class="secondary" id="alignRight">Direita</button><button type="button" class="secondary" id="alignTop">Topo</button><button type="button" class="secondary" id="alignMiddle">Meio</button><button type="button" class="secondary" id="alignBottom">Base</button></div><label for="layerWidth">Largura do elemento</label><input type="range" id="layerWidth" min="15" max="95" value="45"><label for="layerRotate">Rotação</label><input type="range" id="layerRotate" min="-180" max="180" value="0"></div><div class="properties-mini"><h2>Tipografia e efeitos</h2><label for="layerFont">Fonte</label><select id="layerFont"><option value="system-ui">Padrão</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Trebuchet MS">Trebuchet</option><option value="Courier New">Monoespaçada</option></select><label for="layerItalic"><input type="checkbox" id="layerItalic"> Itálico</label><label for="layerShadow"><input type="checkbox" id="layerShadow"> Sombra</label><label for="layerSpacing">Espaçamento entre letras</label><input id="layerSpacing" type="range" min="-2" max="15" step="1" value="0"></div><label for="layerText">Texto do elemento selecionado</label><textarea id="layerText" rows="2" maxlength="220"></textarea><div class="layer-controls"><div><label for="layerColor">Cor</label><input id="layerColor" type="color" value="#ffffff"></div><div><label for="layerSize">Tamanho</label><input id="layerSize" type="range" min="15" max="75" value="30"></div><div><label for="layerWeight">Estilo</label><select id="layerWeight"><option value="400">Regular</option><option value="700">Negrito</option><option value="900">Extra bold</option></select></div><div><label for="layerOpacity">Opacidade</label><input id="layerOpacity" type="range" min="20" max="100" value="100"></div></div><div class="actions"><button class="secondary" id="layerBack" type="button">Enviar para trás</button><button class="secondary" id="layerFront" type="button">Trazer para frente</button></div></section><section class="panel editor-panel" data-panel="ai"><h2>Inteligência artificial</h2><select id="aiModel" hidden aria-hidden="true"></select><label for="aiPrompt">O que deseja criar ou editar?</label><textarea id="aiPrompt" rows="4" maxlength="1200"></textarea><label for="aiSource">Foto opcional para edição (até 2 MB)</label><input type="file" id="aiSource" accept="image/png,image/jpeg,image/webp"><button id="aiGenerate" type="button">Gerar / editar com IA</button><p id="aiStatus" class="hint" role="status">Utiliza créditos de IA</p></section><section class="panel editor-panel" data-panel="export"><h2>Salvar e exportar</h2><div class="actions">
-<button id="saveDraft" type="button">Salvar rascunho</button><button id="saveLibrary" type="button">Salvar na minha biblioteca</button>
+<button id="saveDraft" type="button">Salvar rascunho</button><button id="saveLibrary" type="button">Salvar todas as páginas na nuvem</button>
 <button id="exportPng" class="secondary" type="button">Baixar capa PNG</button>
 <button id="exportHtml" class="secondary" type="button">Baixar HTML animado</button>
 <button id="exportJson" class="secondary" type="button">Baixar projeto JSON</button></div><p id="status" class="status" role="status" aria-live="polite"></p>
@@ -112,18 +112,45 @@ async function uploadCreativeImage(source){
  const asset=window.ALEGON_CREATIVE_CORE.cloudAsset(result.src);if(!asset)throw Error('Referência de imagem inválida.');return asset;
 }
 $('saveLibrary').onclick=async()=>{
- if(!email){status('Aguarde a autenticação.');return}
- const btn=$('saveLibrary');btn.disabled=true;status('Salvando projeto e imagens privadas…');
+ if(!email){status('Entre na sua conta antes de salvar.');return}
+ const button=$('saveLibrary'),workspace=document.querySelector('.workspace'),saveInfo=$('autoSaveInfo');
+ const before=JSON.stringify(documentSnapshot());
+ button.disabled=true;if(workspace)workspace.inert=true;
+ status('Preparando todas as páginas para salvar na nuvem…');
  try{
-  const d=documentSnapshot();for(const page of d.pages){const updated=[];for(const layer of page.layers){if(layer.kind==='image'&&layer.image)updated.push({...layer,image:await uploadCreativeImage(layer.image)});else updated.push(layer)}page.layers=updated;page.photoSrc=await uploadCreativeImage(localPagePhotos.get(page.id)||page.photoSrc)}
-  const payload={...d,format:'alegon-cover-v4'};
-  const req=savedProjectId?{id:savedProjectId,type:'ad',title:d.projectName,payload}:{type:'ad',title:d.projectName,payload};
-  const r=await fetch('/api/library',{method:savedProjectId?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)});
-  const j=await r.json();if(!r.ok)throw Error(j.error||'Não foi possível salvar');
-  if(typeof j.id==='string')savedProjectId=j.id;
-  creativeDoc=window.ALEGON_CREATIVE_PAGES.documentModel(payload);const fresh=creativeDoc.pages.find(p=>p.id===currentPageId);if(fresh){fill(fresh);renderPageTabs()}commitEdit();
-  status('Projeto e imagens salvos na sua conta. Você pode reabrir em outro dispositivo.');
- }catch(e){status(e.message||'Falha ao salvar. O projeto não foi marcado como sincronizado.')}finally{btn.disabled=false}
+  // Upload a detached copy: failed uploads must never corrupt the live document.
+  const draft=JSON.parse(before),copies=new Map();
+  async function storeSource(source){
+   if(!source)return '';
+   if(copies.has(source))return copies.get(source);
+   const owned=await uploadCreativeImage(source);copies.set(source,owned);return owned;
+  }
+  for(let index=0;index<draft.pages.length;index++){
+   const page=draft.pages[index];
+   status('Salvando imagens da página '+(index+1)+' de '+draft.pages.length+'…');
+   page.layers=await Promise.all(page.layers.map(async layer=>layer.kind==='image'&&layer.image?{...layer,image:await storeSource(layer.image)}:layer));
+   page.photoSrc=await storeSource(localPagePhotos.get(page.id)||page.photoSrc);
+  }
+  const payload=window.ALEGON_CREATIVE_PAGES.documentModel(draft);
+  const req=savedProjectId?{id:savedProjectId,type:'ad',title:payload.projectName,payload}:{type:'ad',title:payload.projectName,payload};
+  const res=await fetch('/api/library',{method:savedProjectId?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)});
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok)throw Error(json.error||'Não foi possível salvar o projeto completo.');
+  if(typeof json.id==='string')savedProjectId=json.id;
+  if(!savedProjectId)throw Error('O servidor não confirmou o identificador do projeto.');
+  const oldPhotos=[...new Set(localPagePhotos.values())];
+  // Merge confirmed cloud assets only after the complete document is stored.
+  creativeDoc=payload;localPagePhotos.clear();
+  const current=creativeDoc.pages.find(p=>p.id===currentPageId);
+  if(current){fill(current);renderPageTabs()}
+  for(const url of oldPhotos)if(url.startsWith('blob:'))URL.revokeObjectURL(url);
+  if(saveInfo)saveInfo.textContent='Projeto sincronizado na nuvem';
+  status('Projeto salvo: '+payload.pages.length+' página(s) e imagens. Disponível na Biblioteca ALEGON.');
+  commitEdit();
+ }catch(error){
+  if(saveInfo)saveInfo.textContent='Sincronização pendente';
+  status((error&&error.message)||'Falha ao salvar. Nenhuma página foi marcada como sincronizada.');
+ }finally{if(workspace)workspace.inert=false;button.disabled=false}
 };
 (async()=>{try{const r=await fetch('/api/auth/me',{cache:'no-store'}),j=await r.json();if(!j.authenticated||!j.user?.email){location.replace('/login.html?next=%2Fvideo-studio.html');return}if(j.plan==='essential'){location.replace('/plans.html');return}email=j.user.email;const prefill=localStorage.getItem('alegon-cover-prefill-v1:'+encodeURIComponent(email));if(prefill){const data=JSON.parse(prefill);savedProjectId=String(data?.__projectId||'');loadDocument(data);localStorage.removeItem('alegon-cover-prefill-v1:'+encodeURIComponent(email));status('Projeto da biblioteca carregado para edição.')}else{const saved=localStorage.getItem('alegon-cover-draft-v2:'+encodeURIComponent(email));if(saved){loadDocument(JSON.parse(saved));status('Rascunho local restaurado.')}else loadDocument(defaults)}}catch{location.replace('/login.html?next=%2Fvideo-studio.html')}})();
 
