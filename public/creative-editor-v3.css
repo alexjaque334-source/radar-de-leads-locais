@@ -79,3 +79,5 @@ body.creative-v3 #stage::before{background-position:var(--cover-position,center)
 body.creative-v3 #stage[data-template=cinematic]::before{animation:alegon-cover-zoom var(--anim-speed,9s) alternate infinite ease-in-out}
 @keyframes alegon-cover-zoom{from{transform:scale(var(--cover-zoom,1))}to{transform:scale(calc(var(--cover-zoom,1)*1.2))}}
 body.creative-v3 #stage .custom-layer[data-kind=image]>img{max-width:none;min-width:100%;min-height:100%}
+
+.design-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-height:370px;overflow:auto;margin:12px 0}.design-preset{background:#182c4a;border:1px solid #395477;color:#eef4ff;border-radius:10px;min-height:85px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:7px;padding:12px;text-align:left}.design-preset small{color:#b3c7e6}.design-preset:hover{background:#30476e}.favorite-toggle{display:inline-flex;background:transparent;color:#f6d06a;border:0;position:relative;z-index:2;padding:5px;line-height:1;cursor:pointer}.element-result{position:relative}
