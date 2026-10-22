@@ -43,15 +43,15 @@ const tabButtons=[...document.querySelectorAll('.tool-tabs [data-open]')],toolPa
 function openTool(name){document.getElementById('toolShell').classList.remove('tools-collapsed');$('toggleTools').textContent='Ocultar ferramentas';$('toggleTools').setAttribute('aria-expanded','true');for(const b of tabButtons)b.setAttribute('aria-selected',String(b.dataset.open===name));for(const p of toolPanels)p.classList.toggle('is-open',p.dataset.panel===name)}
 for(const b of tabButtons)b.addEventListener('click',()=>openTool(b.dataset.open));
 $('toggleTools').addEventListener('click',()=>{const c=$('toolShell').classList.toggle('tools-collapsed');$('toggleTools').textContent=c?'Mostrar ferramentas':'Ocultar ferramentas';$('toggleTools').setAttribute('aria-expanded',String(!c))});
-let photoUrl='',photoImage=null,email='',layers=[],selectedLayerId='';
+let photoUrl='',photoImage=null,email='',layers=[],selectedLayerId='',savedProjectId='',cloudPhotoSrc='';
 (async()=>{try{const r=await fetch('/api/openrouter/models',{cache:'no-store'}),j=await r.json();if(!r.ok)return;for(const model of (j.image||[]).slice(0,1)){const opt=document.createElement('option');opt.value=model.id;opt.textContent=model.label;$('aiModel').append(opt)}$('aiGenerate').disabled=!j.configured||!$('aiModel').options.length;$('aiStatus').textContent=j.configured?'IA pronta para testar.':'Recurso temporariamente indisponível.'}catch{$('aiGenerate').disabled=true}})();
-$('aiGenerate').onclick=async()=>{const prompt=$('aiPrompt').value.trim(),file=$('aiSource').files?.[0];if(prompt.length<12){$('aiStatus').textContent='Descreva a imagem com mais detalhes.';return}if(file&&(file.size>2000000||!['image/jpeg','image/png','image/webp'].includes(file.type))){$('aiStatus').textContent='Imagem inválida ou maior que 2 MB.';return}if(!confirm('Essa operação usa créditos pagos de IA e da franquia mensal. Continuar?'))return;const btn=$('aiGenerate');btn.disabled=true;$('aiStatus').textContent='Processando com IA…';try{const image=file?await new Promise((ok,fail)=>{const rd=new FileReader();rd.onload=()=>ok(String(rd.result));rd.onerror=fail;rd.readAsDataURL(file)}):'';const r=await fetch('/api/openrouter/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,image,model:$('aiModel').value})});const j=await r.json();if(!r.ok)throw Error(j.error||'Erro da IA');if(typeof j.image!=='string'||(!j.image.startsWith('data:image/')&&!j.image.startsWith('https://')))throw Error('Imagem inválida');resetPhoto();photoImage=new Image();photoImage.src=j.image;$('stage').style.setProperty('--bg','url("'+j.image+'")');$('aiStatus').textContent='Imagem aplicada à prévia. A imagem original não foi alterada.'}catch(e){$('aiStatus').textContent=e.message||'Falha ao gerar imagem'}finally{btn.disabled=false}};
+$('aiGenerate').onclick=async()=>{const prompt=$('aiPrompt').value.trim(),file=$('aiSource').files?.[0];if(prompt.length<12){$('aiStatus').textContent='Descreva a imagem com mais detalhes.';return}if(file&&(file.size>2000000||!['image/jpeg','image/png','image/webp'].includes(file.type))){$('aiStatus').textContent='Imagem inválida ou maior que 2 MB.';return}if(!confirm('Essa operação usa créditos pagos de IA e da franquia mensal. Continuar?'))return;const btn=$('aiGenerate');btn.disabled=true;$('aiStatus').textContent='Processando com IA…';try{const image=file?await new Promise((ok,fail)=>{const rd=new FileReader();rd.onload=()=>ok(String(rd.result));rd.onerror=fail;rd.readAsDataURL(file)}):'';const r=await fetch('/api/openrouter/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,image,model:$('aiModel').value})});const j=await r.json();if(!r.ok)throw Error(j.error||'Erro da IA');if(typeof j.image!=='string'||(!j.image.startsWith('data:image/')&&!j.image.startsWith('https://')))throw Error('Imagem inválida');resetPhoto();photoImage=new Image();photoImage.src=j.image;cloudPhotoSrc='';$('stage').style.setProperty('--bg','url("'+j.image+'")');$('aiStatus').textContent='Imagem aplicada à prévia. A imagem original não foi alterada.'}catch(e){$('aiStatus').textContent=e.message||'Falha ao gerar imagem'}finally{btn.disabled=false}};
 
 const FIELDS=['canvasFormat','projectName','brand','template','headline','subtitle','cta','accent','align','titleSize','speed','brightness','shade'];
 const defaults={canvasFormat:'story',projectName:'Minha capa ALEGON',brand:'SUA MARCA',template:'cinematic',headline:'Sua marca em destaque',subtitle:'Sua próxima experiência começa aqui.',cta:'Saiba mais',accent:'#5b85ff',align:'left',titleSize:'35',speed:'9',brightness:'55',shade:'70'};
 const status=s=>{$('status').textContent=s};
-function getData(){const d={};for(const key of FIELDS)d[key]=$(key).value;d.layers=layers.map(x=>({...x}));return d}
-function fill(d){for(const key of FIELDS)if(typeof d?.[key]==='string')$(key).value=d[key];layers=window.ALEGON_CREATIVE_CORE.safeProject(d).layers;selectedLayerId='';update();renderLayers()}
+function getData(){const d={};for(const key of FIELDS)d[key]=$(key).value;d.layers=layers.map(x=>({...x}));d.photoSrc=cloudPhotoSrc;return d}
+function fill(d){cloudPhotoSrc=window.ALEGON_CREATIVE_CORE.cloudAsset(d?.photoSrc);if(cloudPhotoSrc){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl='';photoImage=new Image();photoImage.src=cloudPhotoSrc;$('stage').style.setProperty('--bg','url("'+cloudPhotoSrc+'")')}for(const key of FIELDS)if(typeof d?.[key]==='string')$(key).value=d[key];layers=window.ALEGON_CREATIVE_CORE.safeProject(d).layers;selectedLayerId='';update();renderLayers()}
 function update(){
  const d=getData(),s=$('stage');s.dataset.format=d.canvasFormat;s.dataset.template=d.template;s.dataset.align=d.align;
  s.style.setProperty('--accent',d.accent);s.style.setProperty('--title-size',d.titleSize+'px');
@@ -60,10 +60,10 @@ function update(){
  $('outBrand').textContent=d.brand;$('outTitle').textContent=d.headline;$('outSubtitle').textContent=d.subtitle;$('outCTA').textContent=d.cta;
  for(const el of document.querySelectorAll('.preset'))el.setAttribute('aria-pressed',String(el.dataset.value===d.template));
 }
-function resetPhoto(){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl='';photoImage=null;$('photo').value='';$('stage').style.setProperty('--bg','linear-gradient(145deg,#132b56,#17213e)')}
+function resetPhoto(){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl='';photoImage=null;cloudPhotoSrc='';$('photo').value='';$('stage').style.setProperty('--bg','linear-gradient(145deg,#132b56,#17213e)')}
 for(const key of FIELDS)$(key).addEventListener('input',update);$('canvasZoom').addEventListener('input',()=>{$('stage').style.transform='scale('+Number($('canvasZoom').value)/100+')';$('canvasZoomLabel').textContent=$('canvasZoom').value+'%'});
 for(const el of document.querySelectorAll('.preset'))el.addEventListener('click',()=>{$('template').value=el.dataset.value;update()});
-$('photo').addEventListener('change',()=>{const file=$('photo').files?.[0];resetPhoto();if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){status('Use PNG, JPEG ou WebP de até 5 MB.');return}photoUrl=URL.createObjectURL(file);photoImage=new Image();photoImage.src=photoUrl;$('stage').style.setProperty('--bg','url("'+photoUrl+'")');status('Foto local adicionada à prévia.')});
+$('photo').addEventListener('change',()=>{const file=$('photo').files?.[0];resetPhoto();if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){status('Use PNG, JPEG ou WebP de até 5 MB.');return}photoUrl=URL.createObjectURL(file);cloudPhotoSrc='';photoImage=new Image();photoImage.src=photoUrl;$('stage').style.setProperty('--bg','url("'+photoUrl+'")');status('Foto local adicionada à prévia.')});
 $('reset').onclick=()=>{fill(defaults);resetPhoto();status('Editor restaurado.')};
 $('replay').onclick=()=>{const stage=$('stage');stage.style.display='none';void stage.offsetHeight;stage.style.display='';status('Animação reiniciada.')};
 function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u.download;a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
@@ -83,13 +83,41 @@ $('layerFront').onclick=()=>{const i=layers.findIndex(l=>l.id===selectedLayerId)
 for(const [id,axis,value] of [['alignLeft','x',0],['alignCenter','x',50],['alignRight','x',100],['alignTop','y',0],['alignMiddle','y',50],['alignBottom','y',100]])$(id).onclick=()=>{const l=selected();if(!l||l.locked)return;if(axis==='x')l.x=Math.max(0,Math.min(94,value===50?50-(l.width||45)/2:value===100?100-(l.width||45):0));else l.y=value===100?88:value;l[axis]=Math.max(0,Math.min(94,l[axis]));renderLayers();syncHistory()};
 $('layerBack').onclick=()=>{const i=layers.findIndex(l=>l.id===selectedLayerId);if(i<1)return;layers.unshift(...layers.splice(i,1));renderLayers();commitEdit()};
 function saveOutput(result){download(result.blob,result.name)}
-function activePhotoSource(){return photoUrl||(photoImage?.src||'')}
+function activePhotoSource(){return photoUrl||cloudPhotoSrc||(photoImage?.src||'')}
 $('exportPng').onclick=async()=>{const button=$('exportPng');button.disabled=true;status('Preparando PNG a partir da prévia…');try{const out=await window.ALEGON_CREATIVE_EXPORT.png($('stage'),$('canvasFormat').value,$('projectName').value,activePhotoSource());saveOutput(out);status('PNG exportado: '+out.width+' × '+out.height+'.')}catch(error){status(error.message||'Não foi possível exportar PNG. Nenhum arquivo foi baixado.')}finally{button.disabled=false}};
 $('exportHtml').onclick=async()=>{const button=$('exportHtml');button.disabled=true;status('Preparando HTML com a composição atual…');try{const out=await window.ALEGON_CREATIVE_EXPORT.html($('stage'),$('canvasFormat').value,$('projectName').value,activePhotoSource());saveOutput(out);status('HTML animado exportado com imagens incorporadas.')}catch(error){status(error.message||'Não foi possível exportar HTML.')}finally{button.disabled=false}};
 $('exportJson').onclick=()=>{download(new Blob([JSON.stringify({format:'alegon-cover-v2',type:'ad',...getData()},null,2)],{type:'application/json'}),cleanName()+'.json');status('Projeto JSON exportado.')};
 $('saveDraft').onclick=()=>{try{localStorage.setItem('alegon-cover-draft-v2:'+encodeURIComponent(email),JSON.stringify(getData()));status('Rascunho salvo neste navegador (sem a foto).')}catch{status('Não foi possível salvar neste navegador.')}}
-$('saveLibrary').onclick=async()=>{if(!email){status('Aguarde a autenticação.');return}const d=getData();const btn=$('saveLibrary');btn.disabled=true;status('Salvando projeto...');try{const r=await fetch('/api/library',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'ad',title:d.projectName,payload:{format:'alegon-cover-v2',...d}})}),j=await r.json();if(!r.ok)throw Error(j.error||'Não foi possível salvar');status('Capa salva na sua biblioteca. A foto local não foi enviada.')}catch(e){status(e.message||'Falha ao salvar')}finally{btn.disabled=false}};
-(async()=>{try{const r=await fetch('/api/auth/me',{cache:'no-store'}),j=await r.json();if(!j.authenticated||!j.user?.email){location.replace('/login.html?next=%2Fvideo-studio.html');return}if(j.plan==='essential'){location.replace('/plans.html');return}email=j.user.email;const prefill=localStorage.getItem('alegon-cover-prefill-v1:'+encodeURIComponent(email));if(prefill){fill(JSON.parse(prefill));localStorage.removeItem('alegon-cover-prefill-v1:'+encodeURIComponent(email));status('Projeto da biblioteca carregado para edição.')}else{const saved=localStorage.getItem('alegon-cover-draft-v2:'+encodeURIComponent(email));if(saved){fill(JSON.parse(saved));status('Rascunho local restaurado.')}}}catch{location.replace('/login.html?next=%2Fvideo-studio.html')}})();
+async function uploadCreativeImage(source){
+ if(window.ALEGON_CREATIVE_CORE.cloudAsset(source))return source;
+ if(!source)return '';
+ if(!source.startsWith('blob:')&&!source.startsWith('data:image/'))throw Error('Salvamento de imagem externa não permitido. Envie a imagem pelo editor.');
+ const response=await fetch(source);if(!response.ok)throw Error('A imagem selecionada não pôde ser lida.');
+ const blob=await response.blob();if(blob.size>5*1024*1024)throw Error('Imagem acima de 5 MB. Reduza o arquivo antes de salvar.');
+ if(!['image/jpeg','image/png','image/webp'].includes(blob.type))throw Error('Formato de imagem inválido.');
+ const form=new FormData();form.append('image',blob,'imagem.'+(blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg'));form.append('authorized','yes');
+ const r=await fetch('/api/creative-assets',{method:'POST',body:form});const result=await r.json();
+ if(!r.ok)throw Error(result.error||'Não foi possível enviar a imagem.');
+ const asset=window.ALEGON_CREATIVE_CORE.cloudAsset(result.src);if(!asset)throw Error('Referência de imagem inválida.');return asset;
+}
+$('saveLibrary').onclick=async()=>{
+ if(!email){status('Aguarde a autenticação.');return}
+ const btn=$('saveLibrary');btn.disabled=true;status('Salvando projeto e imagens privadas…');
+ try{
+  const d=getData(),nextLayers=[];
+  for(const layer of d.layers){if(layer.kind==='image'&&layer.image){const image=await uploadCreativeImage(layer.image);nextLayers.push({...layer,image})}else nextLayers.push(layer)}
+  d.layers=nextLayers;
+  d.photoSrc=await uploadCreativeImage(activePhotoSource());
+  const payload={format:'alegon-cover-v3',...d};
+  const req=savedProjectId?{id:savedProjectId,type:'ad',title:d.projectName,payload}:{type:'ad',title:d.projectName,payload};
+  const r=await fetch('/api/library',{method:savedProjectId?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)});
+  const j=await r.json();if(!r.ok)throw Error(j.error||'Não foi possível salvar');
+  if(typeof j.id==='string')savedProjectId=j.id;
+  cloudPhotoSrc=d.photoSrc;layers=nextLayers;renderLayers();
+  status('Projeto e imagens salvos na sua conta. Você pode reabrir em outro dispositivo.');
+ }catch(e){status(e.message||'Falha ao salvar. O projeto não foi marcado como sincronizado.')}finally{btn.disabled=false}
+};
+(async()=>{try{const r=await fetch('/api/auth/me',{cache:'no-store'}),j=await r.json();if(!j.authenticated||!j.user?.email){location.replace('/login.html?next=%2Fvideo-studio.html');return}if(j.plan==='essential'){location.replace('/plans.html');return}email=j.user.email;const prefill=localStorage.getItem('alegon-cover-prefill-v1:'+encodeURIComponent(email));if(prefill){const data=JSON.parse(prefill);savedProjectId=String(data?.__projectId||'');fill(data);localStorage.removeItem('alegon-cover-prefill-v1:'+encodeURIComponent(email));status('Projeto da biblioteca carregado para edição.')}else{const saved=localStorage.getItem('alegon-cover-draft-v2:'+encodeURIComponent(email));if(saved){fill(JSON.parse(saved));status('Rascunho local restaurado.')}}}catch{location.replace('/login.html?next=%2Fvideo-studio.html')}})();
 
 // Ferramentas acessíveis de design e histórico local limitado.
 function addShape(kind){if(layers.length>=25){status('Máximo de 25 elementos.');return}const l={id:crypto.randomUUID(),kind,text:'',x:20,y:28,color:'#7b9bff',size:30,weight:'700',opacity:100,width:45,rotate:0,locked:false,hidden:false};layers.push(l);selectLayer(l.id);openTool('layers');commitEdit()}
