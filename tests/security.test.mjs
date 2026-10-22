@@ -433,7 +433,7 @@ test("Creative export uses one DOM scene for HTML and PNG across formats",async(
 test("Creative projects store private asset references and update existing records",async()=>{
  const [core,editor,library,api,exporter]=await Promise.all(["public/creative-core.js","public/video-studio.html","public/library.html","app/api/library/route.ts","public/creative-export.js"].map(p=>readFile(resolve(root,p),"utf8")));
  assert.match(core,/cloudAsset/);assert.match(core,/photoSrc:cloudAsset/);
- assert.match(editor,/uploadCreativeImage/);assert.match(editor,/savedProjectId\?'PATCH':'POST'/);assert.match(editor,/d\.photoSrc=await uploadCreativeImage\(activePhotoSource\(\)\)/);
+ assert.match(editor,/uploadCreativeImage/);assert.match(editor,/savedProjectId\?'PATCH':'POST'/);assert.match(editor,/page\.photoSrc=await storeSource\(localPagePhotos\.get\(page\.id\)\|\|page\.photoSrc\)/);
  assert.match(library,/__projectId:item\.id/);assert.match(api,/validateCreativeAssets/);
  assert.match(api,/BUCKET\.head\("creative-assets\/"/);assert.match(exporter,/credentials:ownedAsset\?'same-origin':'omit'/);
  assert.doesNotMatch(editor,/\.innerHTML\s*=/);
@@ -460,3 +460,5 @@ test("Creative multi-page document supports add, copy, delete, move and legacy p
  assert.match(editor,/documentSnapshot\(\)/);assert.match(editor,/loadDocument\(data\)/);
  assert.match(library,/pages\.length>10/);assert.match(library,/creative-assets\/"/);
 });
+
+test("Creative cloud save keeps live document untouched until upload and database succeed",async()=>{const editor=await readFile(resolve(root,"public/video-studio.html"),"utf8");assert.match(editor,/const before=JSON\.stringify\(documentSnapshot\(\)\)/);assert.match(editor,/const draft=JSON\.parse\(before\),copies=new Map\(\)/);assert.match(editor,/if\(!res\.ok\)throw Error/);assert.match(editor,/creativeDoc=payload;localPagePhotos\.clear\(\)/);assert.match(editor,/workspace\.inert=true/);assert.match(editor,/workspace\.inert=false/);assert.match(editor,/for\(const url of oldPhotos\)/);});
