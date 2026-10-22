@@ -71,7 +71,7 @@ function update(){
  $('outBrand').textContent=d.brand;$('outTitle').textContent=d.headline;$('outSubtitle').textContent=d.subtitle;$('outCTA').textContent=d.cta;
  for(const el of document.querySelectorAll('.preset'))el.setAttribute('aria-pressed',String(el.dataset.value===d.template));
 }
-function resetPhoto(){if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl='';photoImage=null;cloudPhotoSrc='';$('photo').value='';$('stage').style.setProperty('--bg','linear-gradient(145deg,#132b56,#17213e)')}
+function resetPhoto(){if(photoUrl&&!Array.from(localPagePhotos.values()).includes(photoUrl))URL.revokeObjectURL(photoUrl);photoUrl='';photoImage=null;cloudPhotoSrc='';$('photo').value='';$('stage').style.setProperty('--bg','linear-gradient(145deg,#132b56,#17213e)')}
 for(const key of FIELDS)$(key).addEventListener('input',update);$('canvasZoom').addEventListener('input',()=>{$('stage').style.transform='scale('+Number($('canvasZoom').value)/100+')';$('canvasZoomLabel').textContent=$('canvasZoom').value+'%'});
 for(const el of document.querySelectorAll('.preset'))el.addEventListener('click',()=>{$('template').value=el.dataset.value;update()});
 $('photo').addEventListener('change',()=>{const file=$('photo').files?.[0];resetPhoto();if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){status('Use PNG, JPEG ou WebP de até 5 MB.');return}photoUrl=URL.createObjectURL(file);cloudPhotoSrc='';photoImage=new Image();photoImage.src=photoUrl;$('stage').style.setProperty('--bg','url("'+photoUrl+'")');status('Foto local adicionada à prévia.')});
@@ -115,10 +115,7 @@ $('saveLibrary').onclick=async()=>{
  if(!email){status('Aguarde a autenticação.');return}
  const btn=$('saveLibrary');btn.disabled=true;status('Salvando projeto e imagens privadas…');
  try{
-  const d=documentSnapshot();for(const page of d.pages){const updated=[];for(const layer of page.layers){if(layer.kind==='image'&&layer.image)updated.push({...layer,image:await uploadCreativeImage(layer.image)});else updated.push(layer)}page.layers=updated;page.photoSrc=await uploadCreativeImage(localPagePhotos.get(page.id)||page.photoSrc)}const nextLayers=[];
-  for(const layer of d.layers){if(layer.kind==='image'&&layer.image){const image=await uploadCreativeImage(layer.image);nextLayers.push({...layer,image})}else nextLayers.push(layer)}
-  d.layers=nextLayers;
-  d.photoSrc=await uploadCreativeImage(activePhotoSource());
+  const d=documentSnapshot();for(const page of d.pages){const updated=[];for(const layer of page.layers){if(layer.kind==='image'&&layer.image)updated.push({...layer,image:await uploadCreativeImage(layer.image)});else updated.push(layer)}page.layers=updated;page.photoSrc=await uploadCreativeImage(localPagePhotos.get(page.id)||page.photoSrc)}
   const payload={...d,format:'alegon-cover-v4'};
   const req=savedProjectId?{id:savedProjectId,type:'ad',title:d.projectName,payload}:{type:'ad',title:d.projectName,payload};
   const r=await fetch('/api/library',{method:savedProjectId?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)});
