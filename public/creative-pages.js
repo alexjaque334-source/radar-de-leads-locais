@@ -3,8 +3,8 @@
 const core=root.ALEGON_CREATIVE_CORE;
 if(!core)throw Error('Motor de edição ausente.');
 const MAX_PAGES=10;
-const FIELDS=['canvasFormat','brand','template','headline','subtitle','cta','accent','align','titleSize','speed','brightness','shade'];
-const defaults={canvasFormat:'story',brand:'SUA MARCA',template:'cinematic',headline:'Sua marca em destaque',subtitle:'Sua próxima experiência começa aqui.',cta:'Saiba mais',accent:'#5b85ff',align:'left',titleSize:'35',speed:'9',brightness:'55',shade:'70'};
+const FIELDS=['coverPositionX','coverPositionY','coverZoom','coverContrast','coverSaturation','canvasFormat','brand','template','headline','subtitle','cta','accent','align','titleSize','speed','brightness','shade'];
+const defaults={coverPositionX:'50',coverPositionY:'50',coverZoom:'100',coverContrast:'100',coverSaturation:'100',canvasFormat:'story',brand:'SUA MARCA',template:'cinematic',headline:'Sua marca em destaque',subtitle:'Sua próxima experiência começa aqui.',cta:'Saiba mais',accent:'#5b85ff',align:'left',titleSize:'35',speed:'9',brightness:'55',shade:'70'};
 const uid=()=>crypto.randomUUID();
 const cleanName=(value,fallback)=>String(value||fallback).trim().slice(0,65)||fallback;
 function page(input,index=0){
