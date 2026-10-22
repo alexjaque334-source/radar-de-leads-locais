@@ -541,3 +541,21 @@ test("ALEGON Criativo expands original assets and preserves safe template search
  assert.match(page,/favoriteKey\(\)/);
  assert.match(page,/ALEGON_DESIGN_TEMPLATES/);
 });
+
+test("Creative brand and favorites cloud preferences have private, restricted persistence",async()=>{
+ const [route,migration,deploy,editor]=await Promise.all(["app/api/creative-preferences/route.ts","drizzle/0006_creative_preferences.sql","scripts/deploy-cloudflare.mjs","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ assert.match(route,/requirePlan\(request,"pro"\)/);
+ assert.match(route,/requireSameOrigin\(request\)/);
+ assert.match(route,/readJsonObject\(request,16_384\)/);
+ assert.match(route,/checkRateLimit\(request/);
+ assert.match(route,/WHERE user_id=\?/);
+ assert.match(route,/typeof b\.name!=="string"\|\|b\.name\.length>45/);
+ assert.match(route,/\[\.\.\.new Set\(items\)\]/);
+ assert.match(route,/if\(body\.brand!==undefined\)/);
+ assert.match(route,/if\(body\.favorites!==undefined\)/);
+ assert.match(migration,/user_id TEXT PRIMARY KEY REFERENCES radar_users\(id\)/);
+ assert.match(deploy,/0006_creative_preferences\.sql/);
+ assert.match(editor,/loadCloudPreferences\(\)/);
+ assert.match(editor,/syncPreferences\(\{favorites:next\}\)/);
+ assert.match(editor,/syncPreferences\(\{brand\}\)/);
+});
