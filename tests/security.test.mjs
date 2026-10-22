@@ -412,3 +412,15 @@ test("ALEGON Creative initializes editable layers before controls and tracks his
  const scripts=html.split("<script>").slice(1).map(chunk=>chunk.split("</script>")[0]).filter(Boolean);
  for(const source of scripts)assert.doesNotThrow(()=>new Function(source));
 });
+test("Creative typography survives normalization and UI scripts have unique history helpers",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const core=await readFile(resolve(root,"public/creative-core.js"),"utf8");
+ const ctx={crypto:{randomUUID:()=>"test-uuid-1234"}};runInNewContext(core,ctx);
+ const valid=ctx.ALEGON_CREATIVE_CORE.layer({id:"abcdefgh",kind:"text",font:"Georgia",italic:true,shadow:true,spacing:9});
+ assert.equal(valid.font,"Georgia");assert.equal(valid.italic,true);assert.equal(valid.shadow,true);assert.equal(valid.spacing,9);
+ const invalid=ctx.ALEGON_CREATIVE_CORE.layer({font:"url(javascript:alert(1))",spacing:100});
+ assert.equal(invalid.font,"system-ui");assert.equal(invalid.spacing,15);
+ const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ assert.equal(html.split("function commitEdit(){").length-1,1);
+ assert.match(html,/id="layerFont"/);assert.match(html,/id="layerItalic"/);assert.match(html,/id="layerShadow"/);
+});
