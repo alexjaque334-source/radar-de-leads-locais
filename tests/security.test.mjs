@@ -409,6 +409,6 @@ test("ALEGON Creative initializes editable layers before controls and tracks his
  assert.match(html,/visibility\.onclick=\(\)=>\{l\.hidden=!l\.hidden;renderLayers\(\);commitEdit\(\)/);
  assert.match(html,/lock\.onclick=\(\)=>\{l\.locked=!l\.locked;renderLayers\(\);commitEdit\(\)/);
  assert.match(html,/img\.complete\)\{img\.naturalWidth\?resolve\(\):reject/);
- const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)].map(x=>x[1]).filter(Boolean);
+ const scripts=html.split("<script>").slice(1).map(chunk=>chunk.split("</script>")[0]).filter(Boolean);
  for(const source of scripts)assert.doesNotThrow(()=>new Function(source));
 });
