@@ -110,7 +110,6 @@ $('elementUpload').addEventListener('change',async()=>{const file=$('elementUplo
 const undoStack=[],redoStack=[];let currentSnapshot='',restoring=false,saveTimer=0;
 function snapshotState(){return JSON.stringify(getData())}
 function commitEdit(){queueMicrotask(syncHistory)}
-function commitEdit(){queueMicrotask(syncHistory)}
 function syncHistory(){const next=snapshotState();if(!currentSnapshot){currentSnapshot=next;return}if(restoring||next===currentSnapshot)return;undoStack.push(currentSnapshot);if(undoStack.length>70)undoStack.shift();redoStack.length=0;currentSnapshot=next;$('undoBtn').disabled=false;$('redoBtn').disabled=true;clearTimeout(saveTimer);$('autoSaveInfo').textContent='Alterações não salvas';saveTimer=setTimeout(()=>{if(!email)return;try{localStorage.setItem('alegon-cover-draft-v2:'+encodeURIComponent(email),snapshotState());$('autoSaveInfo').textContent='Rascunho salvo automaticamente'}catch{$('autoSaveInfo').textContent='Armazenamento local cheio'}},1200)}
 function restoreState(json){restoring=true;try{fill(JSON.parse(json));currentSnapshot=snapshotState();$('autoSaveInfo').textContent='Alterações restauradas'}finally{restoring=false}$('undoBtn').disabled=undoStack.length===0;$('redoBtn').disabled=redoStack.length===0}
 $('undoBtn').onclick=()=>{if(!undoStack.length)return;redoStack.push(snapshotState());restoreState(undoStack.pop())};
