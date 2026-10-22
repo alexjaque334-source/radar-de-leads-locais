@@ -24,7 +24,7 @@ Objetivo: oferecer uma experiência de criação visual profissional inspirada n
 - Sem afirmação de “100% sem bugs” ou equivalência integral ao Canva sem evidências.
 
 ## Situação
-Etapa prioritária atual: **7 — tratamento avançado de imagens**. Controles de fontes de sistema, alinhamento, espaçamento, altura da linha, transformação, contorno, brilho, sombra, profundidade e estilos prontos implementados na PR #12; aguardando validação da aparência e da exportação em navegadores reais. A etapa 4 segue com homologação multipágina manual pendente. Estrutura inicial de até 10 páginas, criação/duplicação/exclusão/ordenação e armazenamento em formato v4 implementados na PR #12; ainda falta a homologação de interface, ciclo completo de salvamento/reabertura e exportação multipágina. A etapa 3 continua com validação real entre dispositivos pendente. As etapas 1 e 2 receberam implementação e testes automatizados, mas continuam com homologação visual pendente.
+Etapa prioritária atual: **8 — biblioteca ampliada**. Controles de fontes de sistema, alinhamento, espaçamento, altura da linha, transformação, contorno, brilho, sombra, profundidade e estilos prontos implementados na PR #12; aguardando validação da aparência e da exportação em navegadores reais. A etapa 4 segue com homologação multipágina manual pendente. Estrutura inicial de até 10 páginas, criação/duplicação/exclusão/ordenação e armazenamento em formato v4 implementados na PR #12; ainda falta a homologação de interface, ciclo completo de salvamento/reabertura e exportação multipágina. A etapa 3 continua com validação real entre dispositivos pendente. As etapas 1 e 2 receberam implementação e testes automatizados, mas continuam com homologação visual pendente.
 
 
 ## Etapa 6 — andamento
@@ -33,3 +33,7 @@ Seleção múltipla por Ctrl/clique, identificação persistida de grupos, movim
 
 ## Etapa 7 — tratamento de imagens
 Adicionados: enquadramento cover/contain, posição X/Y, zoom, máscaras quadrada/arredondada/circular, brilho/contraste/saturação/preto-e-branco/sépia/desfoque, substituição mantendo geometria, ajustes de capa e persistência no modelo de páginas. Faltam testes visuais de fidelidade e interação, reservados à homologação.
+
+
+## Etapa 8 — biblioteca ampliada
+Ampliação do catálogo para mais de 100 ícones vetoriais originais em novas categorias de setores locais; 20 modelos editáveis por segmento com busca e filtro; favoritos de ícones e kit de cores e nome da marca por usuário no armazenamento local do navegador. Os favoritos e o kit de marca não sincronizam entre dispositivos: exigem evolução posterior para persistência privada na nuvem. Falta homologação visual geral antes do lançamento.
