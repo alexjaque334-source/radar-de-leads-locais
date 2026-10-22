@@ -429,3 +429,12 @@ test("Creative clipboard, flip transforms, grid and shortcuts are present",async
 test("Creative pointer engine constrains resize and handles touch cancellation",async()=>{const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");assert.match(page,/rect\.width\|\|!rect\.height/);assert.match(page,/ev\.pointerId!==e\.pointerId/);assert.match(page,/Math\.min\(l\.x,100-l\.width\)/);assert.match(page,/el\.onpointercancel=finish/);assert.match(page,/if\(moved\)\{renderLayers\(\);commitEdit\(\)\}/);const roadmap=await readFile(resolve(root,"docs/alegon-criativo-roadmap.md"),"utf8");assert.match(roadmap,/Motor de edição confiável/);});
 
 test("Creative export uses one DOM scene for HTML and PNG across formats",async()=>{const [page,source]=await Promise.all(["public/video-studio.html","public/creative-export.js"].map(p=>readFile(resolve(root,p),"utf8")));const {runInNewContext}=await import("node:vm");const context={Blob,crypto:{randomUUID:()=>"test-uuid"}};runInNewContext(source,context);const exp=context.ALEGON_CREATIVE_EXPORT;for(const [format,w,h] of [["story",1080,1920],["post",1080,1080],["portrait",1080,1350],["wide",1920,1080]]){assert.equal(exp.canvasSize(format).width,w);assert.equal(exp.canvasSize(format).height,h)}assert.match(page,/ALEGON_CREATIVE_EXPORT\.png/);assert.match(page,/ALEGON_CREATIVE_EXPORT\.html/);assert.match(source,/scene\.clone\.outerHTML/);assert.match(source,/foreignObject/);assert.match(source,/embedImage\(photoSource\)/);assert.doesNotMatch(source,/https:\/\/api\./);});
+
+test("Creative projects store private asset references and update existing records",async()=>{
+ const [core,editor,library,api,exporter]=await Promise.all(["public/creative-core.js","public/video-studio.html","public/library.html","app/api/library/route.ts","public/creative-export.js"].map(p=>readFile(resolve(root,p),"utf8")));
+ assert.match(core,/cloudAsset/);assert.match(core,/photoSrc:cloudAsset/);
+ assert.match(editor,/uploadCreativeImage/);assert.match(editor,/savedProjectId\?'PATCH':'POST'/);assert.match(editor,/d\.photoSrc=await uploadCreativeImage\(activePhotoSource\(\)\)/);
+ assert.match(library,/__projectId:item\.id/);assert.match(api,/validateCreativeAssets/);
+ assert.match(api,/BUCKET\.head\("creative-assets\/"/);assert.match(exporter,/credentials:ownedAsset\?'same-origin':'omit'/);
+ assert.doesNotMatch(editor,/\.innerHTML\s*=/);
+});
