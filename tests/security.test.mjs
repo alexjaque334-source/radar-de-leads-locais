@@ -442,3 +442,21 @@ test("Creative projects store private asset references and update existing recor
 test("Creative uploads use private authenticated assets instead of embedding large images",async()=>{const editor=await readFile(resolve(root,"public/video-studio.html"),"utf8");const route=await readFile(resolve(root,"app/api/creative-assets/route.ts"),"utf8");assert.match(editor,/form\.append\('image',file\)/);assert.match(editor,/fetch\('\/api\/creative-assets',\{method:'POST'/);assert.match(editor,/file\.size>5\*1024\*1024/);assert.match(route,/requirePlan\(request,"pro"\)/);assert.match(route,/auth\.user\.id/);assert.match(route,/X-Content-Type-Options/);});
 
 test("Creative cloud reopening clears previous cover and requires owned asset",async()=>{const [editor,core,assets,library]=await Promise.all(["public/video-studio.html","public/creative-core.js","app/api/creative-assets/route.ts","app/api/library/route.ts"].map(p=>readFile(resolve(root,p),"utf8")));assert.match(editor,/function fill\(d\)\{resetPhoto\(\)/);assert.match(editor,/cloudPhotoSrc=window\.ALEGON_CREATIVE_CORE\.cloudAsset/);assert.match(editor,/credentials:'same-origin'/);assert.match(assets,/requirePlan\(request,"pro"\)/);assert.match(assets,/creative-assets\/"/);assert.match(library,/validateCreativeAssets/);assert.match(core,/cloudAsset/);});
+
+test("Creative multi-page document supports add, copy, delete, move and legacy projects", async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [core,pages,editor,library]=await Promise.all(["public/creative-core.js","public/creative-pages.js","public/video-studio.html","app/api/library/route.ts"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={crypto:{randomUUID:(()=>{let i=0;return()=>("00000000-0000-4000-8000-"+String(++i).padStart(12,"0"))})()}};
+ runInNewContext(core+"\n"+pages,context);
+ const api=context.ALEGON_CREATIVE_PAGES;
+ const original=api.documentModel({projectName:"Campanha",headline:"Promoção",layers:[{id:"abcdefgh",kind:"text",text:"Original"}]});
+ assert.equal(original.pages.length,1);assert.equal(original.pages[0].headline,"Promoção");
+ const added=api.add(original);assert.equal(added.pages.length,2);assert.notEqual(added.activePageId,original.activePageId);
+ const copied=api.duplicate(added,original.pages[0].id);assert.equal(copied.pages.length,3);assert.equal(copied.pages[1].headline,"Promoção");
+ const reordered=api.move(copied,copied.activePageId,1);assert.equal(reordered.pages[2].id,copied.activePageId);
+ const removed=api.remove(copied,copied.activePageId);assert.equal(removed.pages.length,2);
+ let capped=original;for(let i=0;i<15;i++)capped=api.add(capped);assert.equal(capped.pages.length,10);
+ for(const id of ["addPage","duplicatePage","deletePage","pageUp","pageDown","pageTabs"])assert.ok(editor.includes('id="'+id+'"'));
+ assert.match(editor,/documentSnapshot\(\)/);assert.match(editor,/loadDocument\(data\)/);
+ assert.match(library,/pages\.length>10/);assert.match(library,/creative-assets\/"/);
+});
