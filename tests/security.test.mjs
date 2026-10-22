@@ -404,7 +404,7 @@ test("Creative editor tracks layer changes and handles failed images", async()=>
 
 test("ALEGON Creative initializes editable layers before controls and tracks history",async()=>{
  const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
- assert.match(html,/let photoUrl='',photoImage=null,email='',layers=\[\],selectedLayerId='';/);
+ assert.match(html,/let photoUrl='',photoImage=null,email='',layers=\[\],selectedLayerId=''/);
  assert.match(html,/function commitEdit\(\)\{queueMicrotask\(syncHistory\)\}/);
  assert.match(html,/visibility\.onclick=\(\)=>\{l\.hidden=!l\.hidden;renderLayers\(\);commitEdit\(\)/);
  assert.match(html,/lock\.onclick=\(\)=>\{l\.locked=!l\.locked;renderLayers\(\);commitEdit\(\)/);
