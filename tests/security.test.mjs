@@ -466,3 +466,27 @@ test("Creative cloud save keeps live document untouched until upload and databas
 test("Creative primary save persists all pages and distinguishes local draft",async()=>{const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");assert.match(page,/id="quickSave">Salvar na nuvem/);assert.match(page,/\$\('quickSave'\)\.onclick=\(\)=>\$\('saveLibrary'\)\.click\(\)/);assert.match(page,/const before=JSON\.stringify\(documentSnapshot\(\)\)/);assert.match(page,/for\(let index=0;index<draft\.pages\.length;index\+\+\)/);assert.match(page,/Fotos ainda não enviadas ficam disponíveis apenas nesta sessão/);});
 
 test("Creative typography presets and effects validate safe font and style options",async()=>{const {runInNewContext}=await import("node:vm");const core=await readFile(resolve(root,"public/creative-core.js"),"utf8");const ctx={crypto:{randomUUID:()=> "00000000-0000-4000-8000-000000000001"}};runInNewContext(core,ctx);const c=ctx.ALEGON_CREATIVE_CORE;const p=c.preset("neon");assert.equal(p.textEffect,"neon");assert.equal(c.preset("unknown"),null);const clean=c.layer({id:"abcdefgh",font:"javascript:bad",textEffect:"invalid",underline:true,outlineWidth:50,letterHeight:9});assert.equal(clean.font,"system-ui");assert.equal(clean.textEffect,"none");assert.equal(clean.underline,true);assert.equal(clean.outlineWidth,5);assert.equal(clean.letterHeight,2.2);const css=c.textStyle({...clean,textEffect:"extrude"});assert.ok(css.textShadow.includes("px"));const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");for(const id of ["textPreset","layerEffect","layerOutlineColor","layerOutlineWidth","layerTextAlign","layerLetterHeight"])assert.ok(html.includes('id="'+id+'"'));});
+
+test("Creative typography presets persist across pages with safe CSS values",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [core,pages,editor]=await Promise.all(["public/creative-core.js","public/creative-pages.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const ctx={crypto:{randomUUID:()=>"00000000-0000-4000-8000-000000000001"}};
+ runInNewContext(core+"\n"+pages,ctx);
+ const engine=ctx.ALEGON_CREATIVE_CORE,manager=ctx.ALEGON_CREATIVE_PAGES;
+ for(const name of ["editorial","impact","neon","classic","minimal"]){
+  const preset=engine.preset(name);
+  assert.ok(preset&&typeof preset.font==="string");
+  const layer=engine.layer({...preset,id:"abcdefgh",kind:"text",text:"ALEGON"});
+  const css=engine.textStyle(layer);
+  assert.ok(css.fontSize&&css.fontFamily);
+  const doc=manager.documentModel({pages:[{layers:[layer],canvasFormat:"post"}]});
+  assert.equal(doc.pages[0].layers[0].font,layer.font);
+  assert.equal(doc.pages[0].layers[0].textEffect,layer.textEffect);
+ }
+ const rejected=engine.layer({id:"abcdefgh",kind:"text",textEffect:"url(javascript:alert(1))",outlineColor:"red;position:fixed",textAlign:"justify"});
+ assert.equal(rejected.textEffect,"none");
+ assert.equal(rejected.outlineColor,"#000000");
+ assert.equal(rejected.textAlign,"left");
+ assert.match(editor,/id="textPreset"/);assert.match(editor,/id="layerEffect"/);
+ assert.match(editor,/textStyle\(l\)/);
+});
