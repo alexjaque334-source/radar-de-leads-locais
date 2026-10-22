@@ -24,4 +24,4 @@ Objetivo: oferecer uma experiência de criação visual profissional inspirada n
 - Sem afirmação de “100% sem bugs” ou equivalência integral ao Canva sem evidências.
 
 ## Situação
-Etapa prioritária atual: **3 — persistência de imagens e projetos**. Integração do editor com API privada R2 e biblioteca D1 implementada na PR #12; falta validar R2 configurado e ciclo de salvamento/reabertura em dispositivos diferentes. As etapas 1 e 2 receberam implementação e testes automatizados, mas continuam com homologação visual pendente.
+Etapa prioritária atual: **4 — múltiplas páginas e projetos**. Estrutura inicial de até 10 páginas, criação/duplicação/exclusão/ordenação e armazenamento em formato v4 implementados na PR #12; ainda falta a homologação de interface, ciclo completo de salvamento/reabertura e exportação multipágina. A etapa 3 continua com validação real entre dispositivos pendente. As etapas 1 e 2 receberam implementação e testes automatizados, mas continuam com homologação visual pendente.
