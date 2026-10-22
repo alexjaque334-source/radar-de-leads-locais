@@ -9,14 +9,25 @@ const creativeUrl=/^\/api\/creative-assets\?id=([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9
 async function validateCreativeAssets(payload:unknown,userId:string){
  if(!payload||typeof payload!=="object"||Array.isArray(payload))return false;
  const data=payload as Record<string,unknown>,refs:string[]=[];
- if(data.photoSrc!==undefined&&data.photoSrc!==""){if(typeof data.photoSrc!=="string"||!creativeUrl.test(data.photoSrc))return false;refs.push(data.photoSrc)}
- if(Array.isArray(data.layers)){
-  if(data.layers.length>25)return false;
-  for(const item of data.layers){if(!item||typeof item!=="object"||Array.isArray(item))return false;const layer=item as Record<string,unknown>;
-   if(layer.kind==="image"&&layer.image){if(typeof layer.image!=="string"||!creativeUrl.test(layer.image))return false;refs.push(layer.image)}
+ const pages=data.format==="alegon-cover-v4" ? data.pages : [data];
+ if(!Array.isArray(pages)||pages.length<1||pages.length>10)return false;
+ if(data.format==="alegon-cover-v4"){
+  if(typeof data.activePageId!=="string"||!pages.some(p=>p&&typeof p==="object"&&(p as Record<string,unknown>).id===data.activePageId))return false;
+ }
+ let count=0;
+ for(const value of pages){
+  if(!value||typeof value!=="object"||Array.isArray(value))return false;
+  const page=value as Record<string,unknown>;
+  if(page.photoSrc!==undefined&&page.photoSrc!==""){if(typeof page.photoSrc!=="string"||!creativeUrl.test(page.photoSrc))return false;refs.push(page.photoSrc)}
+  if(page.layers!==undefined&&!Array.isArray(page.layers))return false;
+  if(Array.isArray(page.layers)){if(page.layers.length>25)return false;count+=page.layers.length;
+   for(const item of page.layers){if(!item||typeof item!=="object"||Array.isArray(item))return false;const layer=item as Record<string,unknown>;
+    if(layer.kind==="image"&&layer.image){if(typeof layer.image!=="string"||!creativeUrl.test(layer.image))return false;refs.push(layer.image)}
+   }
   }
  }
- if(refs.length>26||!refs.length)return true;
+ if(count>250||refs.length>260)return false;
+ if(!refs.length)return true;
  if(!env.BUCKET)return false;
  for(const url of new Set(refs)){const id=creativeUrl.exec(url)?.[1];if(!id)return false;const obj=await env.BUCKET.head("creative-assets/"+userId+"/"+id);if(!obj)return false}
  return true;
