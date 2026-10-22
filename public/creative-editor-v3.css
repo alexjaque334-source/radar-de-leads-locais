@@ -72,3 +72,10 @@ body.creative-v3 .custom-layer[data-kind=icon] svg{display:block;width:100%;heig
 body.creative-v3 #stage.show-grid{background-image:linear-gradient(to right,#d7e6ff1a 1px,transparent 1px),linear-gradient(to bottom,#d7e6ff1a 1px,transparent 1px),var(--bg);background-size:10% 10%;}
 
 .pages-toolbar{margin-top:12px;background:#0c1729;border:1px solid #344761;border-radius:12px;padding:10px}.page-tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:5px}.page-tabs button{flex:0 0 auto;font-size:11px;padding:9px 12px}.page-tabs button[aria-current=true]{background:#4168bd;border:1px solid #a1baff}.pages-toolbar .actions{margin-top:7px}.pages-toolbar .actions button{font-size:11px;padding:8px 10px}@media(max-width:600px){.page-tabs{max-width:100%}.pages-toolbar .actions{gap:5px}}
+
+/* Non-destructive image adjustments follow the shared preview/export DOM. */
+body.creative-v3 #imageAdjustments[hidden]{display:none!important}
+body.creative-v3 #stage::before{background-position:var(--cover-position,center)!important;filter:brightness(var(--photo-brightness,.55)) var(--cover-filters,none);transform-origin:var(--cover-position,center)}
+body.creative-v3 #stage[data-template=cinematic]::before{animation:alegon-cover-zoom var(--anim-speed,9s) alternate infinite ease-in-out}
+@keyframes alegon-cover-zoom{from{transform:scale(var(--cover-zoom,1))}to{transform:scale(calc(var(--cover-zoom,1)*1.2))}}
+body.creative-v3 #stage .custom-layer[data-kind=image]>img{max-width:none;min-width:100%;min-height:100%}
