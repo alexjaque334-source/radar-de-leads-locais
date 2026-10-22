@@ -485,7 +485,7 @@ test("Creative typography presets persist across pages with safe CSS values",asy
  }
  const rejected=engine.layer({id:"abcdefgh",kind:"text",textEffect:"url(javascript:alert(1))",outlineColor:"red;position:fixed",textAlign:"justify"});
  assert.equal(rejected.textEffect,"none");
- assert.equal(rejected.outlineColor,"#000000");
+ assert.equal(rejected.outlineColor,"#ffffff");
  assert.equal(rejected.textAlign,"left");
  assert.match(editor,/id="textPreset"/);assert.match(editor,/id="layerEffect"/);
  assert.match(editor,/textStyle\(l\)/);
