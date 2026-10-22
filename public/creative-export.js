@@ -21,9 +21,9 @@
  async function embedImage(source){
   if(!source)return '';
   if(dataImagePattern.test(source))return source;
-  if(!source.startsWith('blob:')&&!source.startsWith('https://')&&!source.startsWith('http://'))throw Error('O formato da imagem não é compatível com a exportação.');
+  const ownedAsset=/^\/api\/creative-assets\?id=[0-9a-f-]{36}$/i.test(source);if(!ownedAsset&&!source.startsWith('blob:')&&!source.startsWith('https://')&&!source.startsWith('http://'))throw Error('O formato da imagem não é compatível com a exportação.');
   // Blobs are already local. Cross-origin downloads only succeed when authorized by CORS.
-  let response;try{response=await fetch(source,{mode:'cors',credentials:'omit'})}catch{throw Error('A foto não permite incorporação. Envie-a como arquivo próprio antes de exportar.')}
+  let response;try{response=await fetch(source,{mode:'cors',credentials:ownedAsset?'same-origin':'omit'})}catch{throw Error('A foto não permite incorporação. Envie-a como arquivo próprio antes de exportar.')}
   if(!response.ok)throw Error('A foto não pôde ser carregada para exportação.');
   const data=await response.blob();
   if(!['image/png','image/jpeg','image/webp'].includes(data.type))throw Error('O arquivo não é uma imagem PNG, JPG ou WebP válida.');
