@@ -24,4 +24,4 @@ Objetivo: oferecer uma experiência de criação visual profissional inspirada n
 - Sem afirmação de “100% sem bugs” ou equivalência integral ao Canva sem evidências.
 
 ## Situação
-Etapa prioritária atual: **1 — motor de edição**. Atualizar checklist apenas ao confirmar os testes correspondentes. Não expandir o escopo antes de concluir a etapa em progresso.
+Etapa prioritária atual: **3 — persistência de imagens e projetos**. Integração do editor com API privada R2 e biblioteca D1 implementada na PR #12; falta validar R2 configurado e ciclo de salvamento/reabertura em dispositivos diferentes. As etapas 1 e 2 receberam implementação e testes automatizados, mas continuam com homologação visual pendente.
