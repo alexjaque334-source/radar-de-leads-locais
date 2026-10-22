@@ -17,7 +17,7 @@
     color:color(l.color),size:clamp(l.size,15,75,30),
     weight:['400','700','900'].includes(String(l.weight))?String(l.weight):'700',
     opacity:clamp(l.opacity,20,100,100),kind,width,
-    rotate:clamp(l.rotate,-180,180,0),locked:!!l.locked,hidden:!!l.hidden,
+    font:['system-ui','Arial','Georgia','Verdana','Trebuchet MS','Courier New'].includes(l.font)?l.font:'system-ui',italic:!!l.italic,shadow:!!l.shadow,spacing:clamp(l.spacing,-2,15,0),rotate:clamp(l.rotate,-180,180,0),locked:!!l.locked,hidden:!!l.hidden,
     icon:typeof l.icon==='string'&&/^[a-z0-9-]{1,60}$/.test(l.icon)?l.icon:'',
     image:kind==='image'&&typeof l.image==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(l.image)&&l.image.length<500000?l.image:''
   };
