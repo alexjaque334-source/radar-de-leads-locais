@@ -424,3 +424,4 @@ test("Creative typography survives normalization and UI scripts have unique hist
  assert.equal(html.split("function commitEdit(){").length-1,1);
  assert.match(html,/id="layerFont"/);assert.match(html,/id="layerItalic"/);assert.match(html,/id="layerShadow"/);
 });
+test("Creative clipboard, flip transforms, grid and shortcuts are present",async()=>{const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");const core=await readFile(resolve(root,"public/creative-core.js"),"utf8");for(const id of ["copyLayer","pasteLayer","flipHorizontal","flipVertical","toggleGrid"])assert.ok(page.includes('id="'+id+'"'));assert.match(page,/layerClipboard/);assert.match(page,/l\.flipX=!l\.flipX/);assert.match(core,/flipX:!!l\.flipX,flipY:!!l\.flipY/);assert.doesNotMatch(page,/\.innerHTML\s*=/);});
