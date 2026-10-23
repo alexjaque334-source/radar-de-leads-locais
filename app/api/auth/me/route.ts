@@ -1,3 +1,4 @@
+import {subscription} from "@/app/lib/subscriptions";
 import { env } from "cloudflare:workers";
 import { currentUser, db, json, requireSameOrigin, readCookie, sha256 } from "@/app/lib/radar-auth";
 export const dynamic = "force-dynamic";
@@ -6,7 +7,8 @@ export async function GET(request: Request) {
   const binding = db(); if (!binding) return json({ authenticated: false, configured: false }, 200);
   const user = await currentUser(request); if (!user) return json({ authenticated: false }, 200);
   const ownerEmail = (env as typeof env & { SUPERADMIN_EMAIL?: string }).SUPERADMIN_EMAIL?.trim().toLowerCase();
-  return json({ authenticated: true, user: { email: user.email, isOwner: Boolean(ownerEmail && user.email.toLowerCase() === ownerEmail) } });
+  const plan=await subscription(user).catch(()=>null);if(!plan)return json({authenticated:false,error:"Plano indisponível"},503);
+  return json({ authenticated: true, plan:plan.active,requestedPlan:plan.requested, user: { email: user.email, isOwner: Boolean(ownerEmail && user.email.toLowerCase() === ownerEmail) } });
 }
 export async function DELETE(request: Request) {
   const originError = requireSameOrigin(request); if (originError) return originError;

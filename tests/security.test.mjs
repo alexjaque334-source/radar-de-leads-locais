@@ -305,7 +305,7 @@ test("R2 private authorized upload: five constraints",async()=>{const api=await 
 test("Unsplash illustration integration uses secret and honest source labels",async()=>{const api=await readFile(resolve(root,"app/api/business-media/route.ts"),"utf8");const ui=await readFile(resolve(root,"public/studio.html"),"utf8");const envType=await readFile(resolve(root,"cloudflare-env.d.ts"),"utf8");assert.match(api,/env\.UNSPLASH_ACCESS_KEY/);assert.match(api,/api\.unsplash\.com\/search\/photos/);assert.match(api,/Client-ID/);assert.match(api,/license:"unsplash"/);assert.match(ui,/discoverBusinessMedia\('unsplash'\)/);assert.match(ui,/Ilustrativa Unsplash/);assert.match(ui,/Ver fonte no Unsplash/);assert.match(envType,/UNSPLASH_ACCESS_KEY\?: string/);});
 
 test("Menu and library: script syntax and no automatic video generation",async()=>{const vm=await import("node:vm");for(const file of ["public/menu-studio.html","public/library.html"]){const html=await readFile(resolve(root,file),"utf8");assert.match(html,/<meta name="viewport"/);for(const script of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))assert.doesNotThrow(()=>new vm.Script(script[1]));assert.doesNotMatch(html,/MediaRecorder|video\/mp4|three\.js/i)}const menu=await readFile(resolve(root,"public/menu-studio.html"),"utf8");assert.match(menu,/alegon-menu-v1/);assert.match(menu,/prefers-reduced-motion/);assert.match(menu,/application\/json/);const lib=await readFile(resolve(root,"public/library.html"),"utf8");assert.match(lib,/image\/svg\+xml/);assert.ok(lib.includes('/api/library'));});
-test("Global ALEGON library: D1 isolation and admin-only publishing",async()=>{const sql=await readFile(resolve(root,"drizzle/0001_alegon_library.sql"),"utf8"),api=await readFile(resolve(root,"app/api/library/route.ts"),"utf8");assert.match(sql,/alegon_library_templates/);assert.match(sql,/alegon_library_projects/);assert.match(api,/requireUser\(request\)/);assert.match(api,/requireSameOrigin\(request\)/);assert.match(api,/global&&!isAdmin\(user.email\)/);assert.match(api,/WHERE user_id=\?/);assert.match(api,/published=1/);});
+test("Global ALEGON library: D1 isolation and admin-only publishing",async()=>{const sql=await readFile(resolve(root,"drizzle/0001_alegon_library.sql"),"utf8"),api=await readFile(resolve(root,"app/api/library/route.ts"),"utf8");assert.match(sql,/alegon_library_templates/);assert.match(sql,/alegon_library_projects/);assert.match(api,/requirePlan\(request,"pro"\)/);assert.match(api,/requireSameOrigin\(request\)/);assert.match(api,/global&&!isAdmin\(user.email\)/);assert.match(api,/WHERE user_id=\?/);assert.match(api,/published=1/);});
 
 test("SEO and security headers: public metadata, private application",async()=>{const config=await readFile(resolve(root,"next.config.ts"),"utf8"),robots=await readFile(resolve(root,"app/robots.ts"),"utf8"),sitemap=await readFile(resolve(root,"app/sitemap.ts"),"utf8"),landing=await readFile(resolve(root,"app/sobre/page.tsx"),"utf8");for(const header of ["X-Content-Type-Options","X-Frame-Options","Referrer-Policy","Content-Security-Policy","Permissions-Policy","Strict-Transport-Security"])assert.ok(config.includes(header));assert.match(robots,/admin\.html/);assert.match(robots,/api\//);assert.match(sitemap,/sobre/);assert.match(landing,/index:true/);assert.match(config,/noindex, nofollow/);});
 test("Sensitive registration errors are not logged to production",async()=>{const src=await readFile(resolve(root,"app/api/auth/register/route.ts"),"utf8");assert.doesNotMatch(src,/console\.error\("Cadastro Radar falhou"/);assert.match(src,/checkRateLimit\(/);assert.match(src,/hashPassword\(/);});
@@ -353,4 +353,259 @@ test("Unified monthly credits have one fixed Discover cost for 10, 20 or 35 card
  assert.match(ai,/reserveCredits\(actor.id,mode\)/);
  assert.match(deploy,/drizzle\/0003_usage_credits\.sql/);
  assert.match(page,/id="creditsBalance"/);
+});
+
+test("Subscription tiers: signup requests never confer paid access; library is server-guarded", async()=>{const read=async p=>readFile(resolve(root,p),"utf8");const [migration,signup,admin,library,subscriptions,deploy]=await Promise.all(["drizzle/0004_subscription_plans.sql","app/api/auth/register/route.ts","app/api/admin/users/route.ts","app/api/library/route.ts","app/lib/subscriptions.ts","scripts/deploy-cloudflare.mjs"].map(read));assert.match(signup,/requested_plan,active_plan/);assert.match(signup,/essential/);assert.match(admin,/planOnly/);assert.match(admin,/validPlan/);assert.match(library,/requirePlan\(request,"pro"\)/);assert.match(subscriptions,/PLAN_REQUIRED/);assert.match(migration,/alegon_user_plans/);assert.match(deploy,/0004_subscription_plans/);});
+
+
+test("creative canvas format and reusable element normalization", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const core = await readFile(resolve(root, "public/creative-core.js"), "utf8");
+  const ctx = { crypto: { randomUUID: () => "test-uuid-1234" } };
+  runInNewContext(core, ctx);
+  const model = ctx.ALEGON_CREATIVE_CORE;
+  assert.equal(model.dimensions("wide").width, 1920);
+  assert.equal(model.dimensions("post").height, 1080);
+  assert.equal(model.dimensions("unknown").height, 1920);
+  const project = model.safeProject({ canvasFormat:"wide",layers:[
+    {id:"abcdefgh",kind:"icon",icon:"globe",x:200,width:95,color:"invalid"},
+    {id:"ijklmnop",kind:"image",image:"javascript:alert(1)"},
+    {id:"qrstuvwx",kind:"rect",width:45,y:-25},
+  ] });
+  assert.equal(project.canvasFormat,"wide");
+  assert.equal(project.layers[0].kind,"icon");
+  assert.equal(project.layers[0].x,5);
+  assert.equal(project.layers[0].color,"#ffffff");
+  assert.equal(project.layers[1].image,"");
+  assert.equal(project.layers[2].y,0);
+  assert.equal(model.align({id:"abcdefgh",kind:"icon",width:20,x:0}, "x", 50).x,40);
+});
+
+test("creative editor uses shared model and keeps brand files private", async () => {
+ const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ const js=await readFile(resolve(root,"public/alegon-elements.js"),"utf8");
+ assert.match(html,/creative-core\.js/);
+ assert.match(html,/safeProject\(d\)/);
+ assert.match(html,/creative-export\.js/);
+ assert.match(html,/canvasFormat/);
+ assert.match(js,/ALEGON_ELEMENTS/);
+ assert.doesNotMatch(html,/\.innerHTML\s*=/);
+});
+
+test("Creative editor tracks layer changes and handles failed images", async()=>{
+ const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ assert.match(html,/function commitEdit\(\)/);
+ assert.match(html,/visibility\.onclick=\(\)=>\{l\.hidden=!l\.hidden;renderLayers\(\);commitEdit\(\)/);
+ assert.match(html,/lock\.onclick=\(\)=>\{l\.locked=!l\.locked;renderLayers\(\);commitEdit\(\)/);
+ assert.match(html,/img\.complete\)\{img\.naturalWidth\?resolve\(\):reject/);
+ assert.match(html,/currentSnapshot=snapshotState\(\)/);
+});
+
+
+test("ALEGON Creative initializes editable layers before controls and tracks history",async()=>{
+ const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ assert.match(html,/let photoUrl='',photoImage=null,email='',layers=\[\],selectedLayerId=''/);
+ assert.match(html,/function commitEdit\(\)\{queueMicrotask\(syncHistory\)\}/);
+ assert.match(html,/visibility\.onclick=\(\)=>\{l\.hidden=!l\.hidden;renderLayers\(\);commitEdit\(\)/);
+ assert.match(html,/lock\.onclick=\(\)=>\{l\.locked=!l\.locked;renderLayers\(\);commitEdit\(\)/);
+ assert.match(html,/img\.complete\)\{img\.naturalWidth\?resolve\(\):reject/);
+ const scripts=html.split("<script>").slice(1).map(chunk=>chunk.split("</script>")[0]).filter(Boolean);
+ for(const source of scripts)assert.doesNotThrow(()=>new Function(source));
+});
+test("Creative typography survives normalization and UI scripts have unique history helpers",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const core=await readFile(resolve(root,"public/creative-core.js"),"utf8");
+ const ctx={crypto:{randomUUID:()=>"test-uuid-1234"}};runInNewContext(core,ctx);
+ const valid=ctx.ALEGON_CREATIVE_CORE.layer({id:"abcdefgh",kind:"text",font:"Georgia",italic:true,shadow:true,spacing:9});
+ assert.equal(valid.font,"Georgia");assert.equal(valid.italic,true);assert.equal(valid.shadow,true);assert.equal(valid.spacing,9);
+ const invalid=ctx.ALEGON_CREATIVE_CORE.layer({font:"url(javascript:alert(1))",spacing:100});
+ assert.equal(invalid.font,"system-ui");assert.equal(invalid.spacing,15);
+ const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");
+ assert.equal(html.split("function commitEdit(){").length-1,1);
+ assert.match(html,/id="layerFont"/);assert.match(html,/id="layerItalic"/);assert.match(html,/id="layerShadow"/);
+});
+test("Creative clipboard, flip transforms, grid and shortcuts are present",async()=>{const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");const core=await readFile(resolve(root,"public/creative-core.js"),"utf8");for(const id of ["copyLayer","pasteLayer","flipHorizontal","flipVertical","toggleGrid"])assert.ok(page.includes('id="'+id+'"'));assert.match(page,/layerClipboard/);assert.match(page,/l\.flipX=!l\.flipX/);assert.match(core,/flipX:!!l\.flipX,flipY:!!l\.flipY/);assert.doesNotMatch(page,/\.innerHTML\s*=/);});
+
+test("Creative pointer engine constrains resize and handles touch cancellation",async()=>{const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");assert.match(page,/rect\.width\|\|!rect\.height/);assert.match(page,/ev\.pointerId!==e\.pointerId/);assert.match(page,/Math\.min\(l\.x,100-l\.width\)/);assert.match(page,/el\.onpointercancel=finish/);assert.match(page,/if\(moved\)\{renderLayers\(\);commitEdit\(\)\}/);const roadmap=await readFile(resolve(root,"docs/alegon-criativo-roadmap.md"),"utf8");assert.match(roadmap,/Motor de edição confiável/);});
+
+test("Creative export uses one DOM scene for HTML and PNG across formats",async()=>{const [page,source]=await Promise.all(["public/video-studio.html","public/creative-export.js"].map(p=>readFile(resolve(root,p),"utf8")));const {runInNewContext}=await import("node:vm");const context={Blob,crypto:{randomUUID:()=>"test-uuid"}};runInNewContext(source,context);const exp=context.ALEGON_CREATIVE_EXPORT;for(const [format,w,h] of [["story",1080,1920],["post",1080,1080],["portrait",1080,1350],["wide",1920,1080]]){assert.equal(exp.canvasSize(format).width,w);assert.equal(exp.canvasSize(format).height,h)}assert.match(page,/ALEGON_CREATIVE_EXPORT\.png/);assert.match(page,/ALEGON_CREATIVE_EXPORT\.html/);assert.match(source,/scene\.clone\.outerHTML/);assert.match(source,/foreignObject/);assert.match(source,/embedImage\(photoSource\)/);assert.doesNotMatch(source,/https:\/\/api\./);});
+
+test("Creative projects store private asset references and update existing records",async()=>{
+ const [core,editor,library,api,exporter]=await Promise.all(["public/creative-core.js","public/video-studio.html","public/library.html","app/api/library/route.ts","public/creative-export.js"].map(p=>readFile(resolve(root,p),"utf8")));
+ assert.match(core,/cloudAsset/);assert.match(core,/photoSrc:cloudAsset/);
+ assert.match(editor,/uploadCreativeImage/);assert.match(editor,/savedProjectId\?'PATCH':'POST'/);assert.match(editor,/page\.photoSrc=await storeSource\(localPagePhotos\.get\(page\.id\)\|\|page\.photoSrc\)/);
+ assert.match(library,/__projectId:item\.id/);assert.match(api,/validateCreativeAssets/);
+ assert.match(api,/BUCKET\.head\("creative-assets\/"/);assert.match(exporter,/credentials:ownedAsset\?'same-origin':'omit'/);
+ assert.doesNotMatch(editor,/\.innerHTML\s*=/);
+});
+
+test("Creative uploads use private authenticated assets instead of embedding large images",async()=>{const editor=await readFile(resolve(root,"public/video-studio.html"),"utf8");const route=await readFile(resolve(root,"app/api/creative-assets/route.ts"),"utf8");assert.match(editor,/form\.append\('image',file\)/);assert.match(editor,/fetch\('\/api\/creative-assets',\{method:'POST'/);assert.match(editor,/file\.size>5\*1024\*1024/);assert.match(route,/requirePlan\(request,"pro"\)/);assert.match(route,/auth\.user\.id/);assert.match(route,/X-Content-Type-Options/);});
+
+test("Creative cloud reopening clears previous cover and requires owned asset",async()=>{const [editor,core,assets,library]=await Promise.all(["public/video-studio.html","public/creative-core.js","app/api/creative-assets/route.ts","app/api/library/route.ts"].map(p=>readFile(resolve(root,p),"utf8")));assert.match(editor,/function fill\(d\)\{resetPhoto\(\)/);assert.match(editor,/cloudPhotoSrc=window\.ALEGON_CREATIVE_CORE\.cloudAsset/);assert.match(editor,/credentials:'same-origin'/);assert.match(assets,/requirePlan\(request,"pro"\)/);assert.match(assets,/creative-assets\/"/);assert.match(library,/validateCreativeAssets/);assert.match(core,/cloudAsset/);});
+
+test("Creative multi-page document supports add, copy, delete, move and legacy projects", async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [core,pages,editor,library]=await Promise.all(["public/creative-core.js","public/creative-pages.js","public/video-studio.html","app/api/library/route.ts"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={crypto:{randomUUID:(()=>{let i=0;return()=>("00000000-0000-4000-8000-"+String(++i).padStart(12,"0"))})()}};
+ runInNewContext(core+"\n"+pages,context);
+ const api=context.ALEGON_CREATIVE_PAGES;
+ const original=api.documentModel({projectName:"Campanha",headline:"Promoção",layers:[{id:"abcdefgh",kind:"text",text:"Original"}]});
+ assert.equal(original.pages.length,1);assert.equal(original.pages[0].headline,"Promoção");
+ const added=api.add(original);assert.equal(added.pages.length,2);assert.notEqual(added.activePageId,original.activePageId);
+ const copied=api.duplicate(added,original.pages[0].id);assert.equal(copied.pages.length,3);assert.equal(copied.pages[1].headline,"Promoção");
+ const reordered=api.move(copied,copied.activePageId,1);assert.equal(reordered.pages[2].id,copied.activePageId);
+ const removed=api.remove(copied,copied.activePageId);assert.equal(removed.pages.length,2);
+ let capped=original;for(let i=0;i<15;i++)capped=api.add(capped);assert.equal(capped.pages.length,10);
+ for(const id of ["addPage","duplicatePage","deletePage","pageUp","pageDown","pageTabs"])assert.ok(editor.includes('id="'+id+'"'));
+ assert.match(editor,/documentSnapshot\(\)/);assert.match(editor,/loadDocument\(data\)/);
+ assert.match(library,/pages\.length>10/);assert.match(library,/creative-assets\/"/);
+});
+
+test("Creative cloud save keeps live document untouched until upload and database succeed",async()=>{const editor=await readFile(resolve(root,"public/video-studio.html"),"utf8");assert.match(editor,/const before=JSON\.stringify\(documentSnapshot\(\)\)/);assert.match(editor,/const draft=JSON\.parse\(before\),copies=new Map\(\)/);assert.match(editor,/if\(!res\.ok\)throw Error/);assert.match(editor,/creativeDoc=payload;localPagePhotos\.clear\(\)/);assert.match(editor,/workspace\.inert=true/);assert.match(editor,/workspace\.inert=false/);assert.match(editor,/for\(const url of oldPhotos\)/);});
+
+test("Creative primary save persists all pages and distinguishes local draft",async()=>{const page=await readFile(resolve(root,"public/video-studio.html"),"utf8");assert.match(page,/id="quickSave">Salvar na nuvem/);assert.match(page,/\$\('quickSave'\)\.onclick=\(\)=>\$\('saveLibrary'\)\.click\(\)/);assert.match(page,/const before=JSON\.stringify\(documentSnapshot\(\)\)/);assert.match(page,/for\(let index=0;index<draft\.pages\.length;index\+\+\)/);assert.match(page,/Fotos ainda não enviadas ficam disponíveis apenas nesta sessão/);});
+
+test("Creative typography presets and effects validate safe font and style options",async()=>{const {runInNewContext}=await import("node:vm");const core=await readFile(resolve(root,"public/creative-core.js"),"utf8");const ctx={crypto:{randomUUID:()=> "00000000-0000-4000-8000-000000000001"}};runInNewContext(core,ctx);const c=ctx.ALEGON_CREATIVE_CORE;const p=c.preset("neon");assert.equal(p.textEffect,"neon");assert.equal(c.preset("unknown"),null);const clean=c.layer({id:"abcdefgh",font:"javascript:bad",textEffect:"invalid",underline:true,outlineWidth:50,letterHeight:9});assert.equal(clean.font,"system-ui");assert.equal(clean.textEffect,"none");assert.equal(clean.underline,true);assert.equal(clean.outlineWidth,5);assert.equal(clean.letterHeight,2.2);const css=c.textStyle({...clean,textEffect:"extrude"});assert.ok(css.textShadow.includes("px"));const html=await readFile(resolve(root,"public/video-studio.html"),"utf8");for(const id of ["textPreset","layerEffect","layerOutlineColor","layerOutlineWidth","layerTextAlign","layerLetterHeight"])assert.ok(html.includes('id="'+id+'"'));});
+
+test("Creative typography presets persist across pages with safe CSS values",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [core,pages,editor]=await Promise.all(["public/creative-core.js","public/creative-pages.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const ctx={crypto:{randomUUID:()=>"00000000-0000-4000-8000-000000000001"}};
+ runInNewContext(core+"\n"+pages,ctx);
+ const engine=ctx.ALEGON_CREATIVE_CORE,manager=ctx.ALEGON_CREATIVE_PAGES;
+ for(const name of ["editorial","impact","neon","classic","minimal"]){
+  const preset=engine.preset(name);
+  assert.ok(preset&&typeof preset.font==="string");
+  const layer=engine.layer({...preset,id:"abcdefgh",kind:"text",text:"ALEGON"});
+  const css=engine.textStyle(layer);
+  assert.ok(css.fontSize&&css.fontFamily);
+  const doc=manager.documentModel({pages:[{layers:[layer],canvasFormat:"post"}]});
+  assert.equal(doc.pages[0].layers[0].font,layer.font);
+  assert.equal(doc.pages[0].layers[0].textEffect,layer.textEffect);
+ }
+ const rejected=engine.layer({id:"abcdefgh",kind:"text",textEffect:"url(javascript:alert(1))",outlineColor:"red;position:fixed",textAlign:"justify"});
+ assert.equal(rejected.textEffect,"none");
+ assert.equal(rejected.outlineColor,"#ffffff");
+ assert.equal(rejected.textAlign,"left");
+ assert.match(editor,/id="textPreset"/);assert.match(editor,/id="layerEffect"/);
+ assert.match(editor,/textStyle\(l\)/);
+});
+
+test("Creative groups preserve multi-selection and clamp joint movement",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [code,core,editor]=await Promise.all(["public/creative-groups.js","public/creative-core.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const ctx={crypto:{randomUUID:()=> "12345678-1234-4234-8234-123456789012"}};
+ runInNewContext(code,ctx);runInNewContext(core,ctx);
+ const api=ctx.ALEGON_CREATIVE_GROUPS;
+ const sample=[{id:"aaaa1111",x:10,y:10,width:20},{id:"bbbb2222",x:40,y:15,width:20}];
+ const grouped=api.group(sample,["aaaa1111","bbbb2222"]);
+ assert.ok(grouped.groupId);
+ assert.equal(grouped.layers[0].groupId,grouped.layers[1].groupId);
+ assert.deepEqual(Array.from(api.groupIds(grouped.layers,"aaaa1111")),["aaaa1111","bbbb2222"]);
+ const moved=api.translate(grouped.layers,["aaaa1111","bbbb2222"],100,100);
+ assert.equal(moved[1].x,80);assert.equal(moved[0].x,50);
+ assert.equal(api.ungroup(grouped.layers,grouped.groupId)[0].groupId,"");
+ assert.equal(ctx.ALEGON_CREATIVE_CORE.layer({...grouped.layers[0]}).groupId,grouped.groupId);
+ for(const id of ["groupLayers","ungroupLayers","clearMultiSelection"])assert.ok(editor.includes('id="'+id+'"'));
+});
+
+test("Creative photo framing and filters persist safely between pages",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [image,core,pages,editor]=await Promise.all(["public/creative-image.js","public/creative-core.js","public/creative-pages.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={crypto:{randomUUID:()=>"12345678-1234-4234-8234-123456789012"}};
+ runInNewContext(image+"\n"+core+"\n"+pages,context);
+ const filters=context.ALEGON_CREATIVE_IMAGE;
+ const safe=filters.normalize({imageZoom:900,imageContrast:-5,imageBlur:999,imageMask:"unsafe"});
+ assert.equal(safe.imageZoom,300);assert.equal(safe.imageContrast,30);assert.equal(safe.imageBlur,10);assert.equal(safe.imageMask,"square");
+ const layer=context.ALEGON_CREATIVE_CORE.layer({id:"aaaabbbb",kind:"image",imageZoom:155,imageX:24,imageMask:"circle",imageBrightness:120});
+ assert.equal(layer.imageZoom,155);assert.equal(layer.imageMask,"circle");
+ const saved=context.ALEGON_CREATIVE_PAGES.documentModel({pages:[{layers:[layer],coverZoom:"160",coverContrast:"112"}]});
+ assert.equal(saved.pages[0].layers[0].imageX,24);assert.equal(saved.pages[0].coverZoom,"160");
+ for(const id of ["imageReplace","imageFit","imageZoom","imageContrast","imageMask","coverPositionX","coverPositionY"])assert.ok(editor.includes('id="'+id+'"'));
+ assert.match(editor,/Object\.assign\(img\.style,window\.ALEGON_CREATIVE_IMAGE\.imageStyle\(l\)\)/);
+});
+
+test("ALEGON Criativo expands original assets and preserves safe template searches",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [icons,templates,page]=await Promise.all(["public/alegon-elements.js","public/creative-templates.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={window:{}};
+ runInNewContext(icons+"\n"+templates,context);
+ const elements=context.window.ALEGON_ELEMENTS,catalog=context.window.ALEGON_DESIGN_TEMPLATES;
+ assert.ok(elements.icons.length>=100);
+ assert.ok(elements.search("instagram").length>0);
+ assert.ok(elements.search("veterinário").length>0);
+ assert.ok(catalog.all.length>=20);
+ assert.ok(catalog.find("barbearia").some(t=>t.id==="barber"));
+ assert.ok(catalog.find("promoção").length>0);
+ for(const id of ["designSearch","designCategory","designResults","brandKitName","saveBrandKit","applyBrandKit","favoritesOnly"])assert.ok(page.includes('id="'+id+'"'));
+ assert.match(page,/favoriteKey\(\)/);
+ assert.match(page,/ALEGON_DESIGN_TEMPLATES/);
+});
+
+test("Creative brand and favorites cloud preferences have private, restricted persistence",async()=>{
+ const [route,migration,deploy,editor]=await Promise.all(["app/api/creative-preferences/route.ts","drizzle/0006_creative_preferences.sql","scripts/deploy-cloudflare.mjs","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ assert.match(route,/requirePlan\(request,"pro"\)/);
+ assert.match(route,/requireSameOrigin\(request\)/);
+ assert.match(route,/readJsonObject\(request,16_384\)/);
+ assert.match(route,/checkRateLimit\(request/);
+ assert.match(route,/WHERE user_id=\?/);
+ assert.match(route,/typeof b\.name!=="string"\|\|b\.name\.length>45/);
+ assert.match(route,/\[\.\.\.new Set\(items\)\]/);
+ assert.match(route,/if\(body\.brand!==undefined\)/);
+ assert.match(route,/if\(body\.favorites!==undefined\)/);
+ assert.match(migration,/user_id TEXT PRIMARY KEY REFERENCES radar_users\(id\)/);
+ assert.match(deploy,/0006_creative_preferences\.sql/);
+ assert.match(editor,/loadCloudPreferences\(\)/);
+ assert.match(editor,/syncPreferences\(\{favorites:next\}\)/);
+ assert.match(editor,/syncPreferences\(\{brand\}\)/);
+});
+
+test("Creative precision snaps to canvas, margin and peer guides without moving outside bounds",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [helper,editor,css,exporter]=await Promise.all(["public/creative-precision.js","public/video-studio.html","public/creative-editor-v3.css","public/creative-export.js"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={window:{}};runInNewContext(helper,context);
+ const {snap}=context.window.ALEGON_CREATIVE_PRECISION;
+ const center=snap({x:26.1,y:49.2,width:45,height:0,threshold:2});
+ assert.equal(center.x,27.5);assert.equal(center.guideX,50);assert.equal(center.y,50);
+ const edge=snap({x:1,y:3,width:30,height:15,threshold:1.1});
+ assert.equal(edge.x,0);assert.equal(edge.guideX,0);
+ const margin=snap({x:4.4,y:35,width:25,threshold:1});
+ assert.equal(margin.x,5);assert.equal(margin.kindX,"margin");
+ const peer=snap({x:21.2,y:70,width:20,peers:[{x:20,y:10,width:30,height:20}],threshold:1.5});
+ assert.equal(peer.x,20);assert.equal(peer.kindX,"peer");
+ const bounded=snap({x:99,y:99,width:35,height:40,threshold:0});
+ assert.equal(bounded.x,65);assert.equal(bounded.y,60);
+ assert.match(editor,/creative-precision\.js/);
+ for(const field of ["precisionX","precisionY","precisionW","precisionRotation","precisionGrid","precisionRulers","precisionMargins"])assert.ok(editor.includes(field));
+ assert.match(editor,/ev\.altKey/);
+ assert.match(editor,/data-editor-guide/);
+ assert.match(editor,/const editorOnly=node/);
+ assert.match(css,/precision-overlay/);
+ assert.match(exporter,/\[data-editor-overlay\],\[data-editor-guide\]/);
+});
+
+test("Creative professional exports constrain quality/scale and make a consistent one-page PDF",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [script,editor]=await Promise.all(["public/creative-export.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={Blob,TextEncoder,Uint8Array};runInNewContext(script,context);
+ const api=context.ALEGON_CREATIVE_EXPORT;
+ assert.equal(api.exportOptions({scale:5,quality:100}).scale,1);
+ assert.equal(api.exportOptions({scale:2,quality:-1}).quality,.5);
+ assert.equal(api.exportOptions({scale:2,quality:.86,transparent:true}).transparent,true);
+ assert.equal(api.canvasSize("wide").width,1920);
+ for(const name of ["png","jpeg","webp","svg","pdf","html"])assert.equal(typeof api[name],"function");
+ const jpegBytes=Uint8Array.from([255,216,255,217]);
+ const pdf=api.pdfFromJpeg(jpegBytes,1080,1920);
+ assert.equal(pdf.type,"application/pdf");
+ const bytes=new Uint8Array(await pdf.arrayBuffer());
+ const doc=new TextDecoder("latin1").decode(bytes);
+ assert.ok(doc.startsWith("%PDF-1.4"));
+ assert.match(doc,/\/Subtype \/Image \/Width 1080 \/Height 1920/);
+ assert.match(doc,/\/Filter \/DCTDecode \/Length 4/);
+ assert.match(doc,/\/MediaBox \[0 0 810 1440\]/);
+ const xrefOffset=Number(doc.match(/startxref\n(\d+)/)?.[1]);
+ assert.ok(xrefOffset>0);assert.equal(doc.slice(xrefOffset,xrefOffset+4),"xref");
+ for(const field of ["exportFormat","exportScale","exportQuality","exportTransparency","exportProfessional"])assert.ok(editor.includes('id="'+field+'"'));
+ assert.match(script,/data-editor-overlay/);
+ assert.match(script,/export-transparent/);
 });
