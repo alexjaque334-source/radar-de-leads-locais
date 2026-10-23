@@ -22,6 +22,13 @@ Encaixe de elementos nas bordas, centros, margens de 5% e pontos de outros eleme
 
 **Pendente de homologação:** conferir com mouse e toque em navegadores reais, inclusive formatos diferentes e zoom; validar a precisão visual de elementos com dimensões automáticas e em grupos antes de declarar a etapa concluída. Não publicar nem fazer merge sem aprovação do responsável.
 
+Revisão posterior: guias visuais transitórias filtradas do observador de alterações para evitar poluição do histórico de desfazer/refazer.
+
+## Etapa 10 — exportações profissionais (implementação)
+Exportador único oferece PNG, JPEG, WebP, SVG com `foreignObject`, PDF de uma página rasterizada e HTML animado. Opções de escala 50/100/200%, qualidade JPEG/WebP/PDF e transparência para PNG/WebP/SVG. O PDF incorpora JPEG sem serviços pagos ou conversão externa; resoluções e formatos são limitados para reduzir uso excessivo de memória. Guias, grades e controles de edição ficam fora dos arquivos exportados.
+
+**Limites declarados:** SVG não é vetorial puro e sua compatibilidade depende do suporte a HTML em `foreignObject`; PDF não preserva objetos editáveis; formatos animados como MP4/GIF não são anunciados como disponíveis. Exportações ainda exigem homologação visual no Chrome/Edge e dispositivos móveis com imagens reais e diferentes tamanhos.
+
 ## Critérios para declarar uma etapa concluída
 - Mudança em branch única e PR #12, sem merge automático.
 - Testes de regressão + lint + build aprovados.

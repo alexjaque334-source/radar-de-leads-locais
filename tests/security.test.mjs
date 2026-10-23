@@ -578,6 +578,34 @@ test("Creative precision snaps to canvas, margin and peer guides without moving 
  assert.match(editor,/creative-precision\.js/);
  for(const field of ["precisionX","precisionY","precisionW","precisionRotation","precisionGrid","precisionRulers","precisionMargins"])assert.ok(editor.includes(field));
  assert.match(editor,/ev\.altKey/);
+ assert.match(editor,/data-editor-guide/);
+ assert.match(editor,/const editorOnly=node/);
  assert.match(css,/precision-overlay/);
  assert.match(exporter,/\[data-editor-overlay\],\[data-editor-guide\]/);
+});
+
+test("Creative professional exports constrain quality/scale and make a consistent one-page PDF",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [script,editor]=await Promise.all(["public/creative-export.js","public/video-studio.html"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={Blob,TextEncoder,Uint8Array};runInNewContext(script,context);
+ const api=context.ALEGON_CREATIVE_EXPORT;
+ assert.equal(api.exportOptions({scale:5,quality:100}).scale,1);
+ assert.equal(api.exportOptions({scale:2,quality:-1}).quality,.5);
+ assert.equal(api.exportOptions({scale:2,quality:.86,transparent:true}).transparent,true);
+ assert.equal(api.canvasSize("wide").width,1920);
+ for(const name of ["png","jpeg","webp","svg","pdf","html"])assert.equal(typeof api[name],"function");
+ const jpegBytes=Uint8Array.from([255,216,255,217]);
+ const pdf=api.pdfFromJpeg(jpegBytes,1080,1920);
+ assert.equal(pdf.type,"application/pdf");
+ const bytes=new Uint8Array(await pdf.arrayBuffer());
+ const doc=new TextDecoder("latin1").decode(bytes);
+ assert.ok(doc.startsWith("%PDF-1.4"));
+ assert.match(doc,/\/Subtype \/Image \/Width 1080 \/Height 1920/);
+ assert.match(doc,/\/Filter \/DCTDecode \/Length 4/);
+ assert.match(doc,/\/MediaBox \[0 0 810 1440\]/);
+ const xrefOffset=Number(doc.match(/startxref\n(\d+)/)?.[1]);
+ assert.ok(xrefOffset>0);assert.equal(doc.slice(xrefOffset,xrefOffset+4),"xref");
+ for(const field of ["exportFormat","exportScale","exportQuality","exportTransparency","exportProfessional"])assert.ok(editor.includes('id="'+field+'"'));
+ assert.match(script,/data-editor-overlay/);
+ assert.match(script,/export-transparent/);
 });

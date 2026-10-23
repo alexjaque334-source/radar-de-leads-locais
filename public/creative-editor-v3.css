@@ -89,6 +89,15 @@ body.creative-v3 .precision-ruler-y span{left:2px;transform:translateY(-50%)}
 body.creative-v3 .precision-guide{position:absolute;z-index:85;pointer-events:none;box-shadow:0 0 3px #071b4b}
 body.creative-v3 .precision-guide-x{top:0;bottom:0;border-left:1px solid #8eecff}
 body.creative-v3 .precision-guide-y{left:0;right:0;border-top:1px solid #8eecff}
+.professional-export{flex:1 1 100%;border:1px solid #35496a;border-radius:11px;background:#152743;padding:12px}
+.professional-export h3{font-size:13px;margin:0 0 8px}
+.professional-export .export-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.professional-export label{font-size:11px;min-width:0}
+.professional-export input,.professional-export select{max-width:100%}
+.professional-export label:has(#exportTransparency){display:flex;align-items:center;gap:7px}
+.professional-export #exportTransparency{width:auto}
+.professional-export #exportProfessional{margin-top:10px}
+@media(max-width:480px){.professional-export .export-options{grid-template-columns:1fr}}
 
 .pages-toolbar{margin-top:12px;background:#0c1729;border:1px solid #344761;border-radius:12px;padding:10px}.page-tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:5px}.page-tabs button{flex:0 0 auto;font-size:11px;padding:9px 12px}.page-tabs button[aria-current=true]{background:#4168bd;border:1px solid #a1baff}.pages-toolbar .actions{margin-top:7px}.pages-toolbar .actions button{font-size:11px;padding:8px 10px}@media(max-width:600px){.page-tabs{max-width:100%}.pages-toolbar .actions{gap:5px}}
 
