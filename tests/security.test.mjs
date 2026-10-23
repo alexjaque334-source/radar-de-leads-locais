@@ -559,3 +559,25 @@ test("Creative brand and favorites cloud preferences have private, restricted pe
  assert.match(editor,/syncPreferences\(\{favorites:next\}\)/);
  assert.match(editor,/syncPreferences\(\{brand\}\)/);
 });
+
+test("Creative precision snaps to canvas, margin and peer guides without moving outside bounds",async()=>{
+ const {runInNewContext}=await import("node:vm");
+ const [helper,editor,css,exporter]=await Promise.all(["public/creative-precision.js","public/video-studio.html","public/creative-editor-v3.css","public/creative-export.js"].map(p=>readFile(resolve(root,p),"utf8")));
+ const context={window:{}};runInNewContext(helper,context);
+ const {snap}=context.window.ALEGON_CREATIVE_PRECISION;
+ const center=snap({x:26.1,y:49.2,width:45,height:0,threshold:2});
+ assert.equal(center.x,27.5);assert.equal(center.guideX,50);assert.equal(center.y,50);
+ const edge=snap({x:1,y:3,width:30,height:15,threshold:1.1});
+ assert.equal(edge.x,0);assert.equal(edge.guideX,0);
+ const margin=snap({x:4.4,y:35,width:25,threshold:1});
+ assert.equal(margin.x,5);assert.equal(margin.kindX,"margin");
+ const peer=snap({x:21.2,y:70,width:20,peers:[{x:20,y:10,width:30,height:20}],threshold:1.5});
+ assert.equal(peer.x,20);assert.equal(peer.kindX,"peer");
+ const bounded=snap({x:99,y:99,width:35,height:40,threshold:0});
+ assert.equal(bounded.x,65);assert.equal(bounded.y,60);
+ assert.match(editor,/creative-precision\.js/);
+ for(const field of ["precisionX","precisionY","precisionW","precisionRotation","precisionGrid","precisionRulers","precisionMargins"])assert.ok(editor.includes(field));
+ assert.match(editor,/ev\.altKey/);
+ assert.match(css,/precision-overlay/);
+ assert.match(exporter,/\[data-editor-overlay\],\[data-editor-guide\]/);
+});

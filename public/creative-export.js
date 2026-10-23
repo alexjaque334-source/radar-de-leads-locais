@@ -35,6 +35,9 @@
   const stageWidth=stage.offsetWidth,stageHeight=stage.offsetHeight;
   if(stageWidth<40||stageHeight<40)throw Error('A área de edição não tem tamanho válido.');
   const clone=stage.cloneNode(true);
+  // Rulers, snap lines and margin/grid aids belong to the editor, not the export.
+  clone.querySelectorAll('[data-editor-overlay],[data-editor-guide]').forEach(node=>node.remove());
+  clone.classList.remove('precision-grid-on','precision-rulers-on','precision-margins-on');
   clone.querySelectorAll('.resize-handle').forEach(node=>node.remove());
   clone.querySelectorAll('.custom-layer').forEach(node=>{
     node.classList.remove('selected');

@@ -17,6 +17,11 @@ Objetivo: oferecer uma experiência de criação visual profissional inspirada n
 - [ ] **11. Testes ponta a ponta** — Playwright ou equivalente em desktop e touchscreen/mobile, autenticação Pro, regressão funcional, acessibilidade, crashes, persistência, uploads, erros de API e segurança.
 - [ ] **12. Pré-lançamento** — auditoria técnica, revisar custos/limites, publicar apenas após aprovação explícita para merge/deploy.
 
+## Etapa 9 — guias e precisão (implementação inicial)
+Encaixe de elementos nas bordas, centros, margens de 5% e pontos de outros elementos, com guias temporárias durante o arraste e opção Alt para movimentação livre. Inclusos grade de 10%, réguas percentuais, margem de segurança e campos numéricos X/Y/largura/rotação; as ajudas visuais são removidas na exportação PNG/HTML. O cálculo do arraste considera o zoom exibido. Testes de geometria e regressão adicionados.
+
+**Pendente de homologação:** conferir com mouse e toque em navegadores reais, inclusive formatos diferentes e zoom; validar a precisão visual de elementos com dimensões automáticas e em grupos antes de declarar a etapa concluída. Não publicar nem fazer merge sem aprovação do responsável.
+
 ## Critérios para declarar uma etapa concluída
 - Mudança em branch única e PR #12, sem merge automático.
 - Testes de regressão + lint + build aprovados.
